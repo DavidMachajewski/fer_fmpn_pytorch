@@ -6,6 +6,7 @@ import pickle
 import cv2 as cv
 import numpy as np
 import torchvision as tv
+import torchvision.transforms as transforms
 
 
 class DatasetBase(Dataset):
@@ -110,7 +111,7 @@ class CKP(DatasetBase):
 def get_ckp(args, batch_size=8, shuffle=True, num_workers=2):
     """Initialize ckp dataset and return train, test
     torch.utils.data.dataloader.DataLoader, already batched and shuffled."""
-    transforms = tv.transforms.Compose([RandomCrop(args), ToTensor(), RandomFlip()])
+    transforms = tv.transforms.Compose([RandomCrop(args), ToTensor(), RandomFlip(), Normalization()])
     train_ds = CKP(train=True, args=args, transform=transforms)
     test_ds = CKP(train=True, args=args, transform=transforms)
 
@@ -132,6 +133,23 @@ def get_ckp(args, batch_size=8, shuffle=True, num_workers=2):
 # callable classes, can be used like a layer to stack in a model
 #
 # #################################################################
+
+class Normalization(object):
+    def __call__(self, sample):
+        image = sample['image']
+        image = image.float()
+        image_gray = sample['image_gray']
+        mask = sample['mask']
+        label = sample['label']
+
+        image = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(image)
+
+        return {'image': image,
+                'image_gray': image_gray,
+                'label': label,
+                'mask': mask}
+
+
 class RandomCrop(object):
     """Crop image of given sample to final_size"""
 
@@ -213,3 +231,6 @@ class ToTensor(object):
                 'image_gray': to.from_numpy(image_gray),
                 'label': to.tensor(label),
                 'mask': to.from_numpy(mask)}
+
+
+norm = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])

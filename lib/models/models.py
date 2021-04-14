@@ -198,8 +198,8 @@ class NetworkSetup(object):
             self.calc_loss_cn = nn.CrossEntropyLoss()
             self.calc_loss_fmg.to(self.device)
             self.calc_loss_cn.to(self.device)
-            # to.nn.DataParallel(self.calc_loss_cn, self.args.gpu_id)
-            # to.nn.DataParallel(self.calc_loss_fmg, self.args.gpu_id)
+            to.nn.DataParallel(self.calc_loss_cn, [self.args.gpu_id])
+            to.nn.DataParallel(self.calc_loss_fmg, [self.args.gpu_id])
             self.loss_total = lambda loss_fmg, loss_cn: 10 * loss_fmg + 1 * loss_cn
             self.sub_losses = []
             self.optimizers = []
@@ -259,7 +259,7 @@ class NetworkSetup(object):
                 if to.cuda.is_available():
                     to.save(net.module.cpu().state_dict(), save_path)
                     net.to(self.args.gpu_id)
-                    net = to.nn.DataParallel(net, self.args.gpu_id)
+                    net = to.nn.DataParallel(net, [self.args.gpu_id])
                 else:
                     to.save(net.cpu().state_dict(), save_path)
 
@@ -341,7 +341,6 @@ class FMG(NetworkSetup):
         self.loss_fmg = self.calc_loss_fmg(self.predicted_mask, self.masks)
         self.loss_fmg.backward()
 
-
     def optimizer_step(self):
         self.forward()
         self.optimizer_fmg.zero_grad()
@@ -366,10 +365,13 @@ class FMPN(NetworkSetup):
         super(FMPN, self).__init__(args)
         self.fmg = FacialMaskGenerator()
         self.fmg.to(self.device)
+        self.fmg = to.nn.DataParallel(self.fmg, [self.device])
         self.pfn = PriorFusionNetwork()
         self.pfn.to(self.device)
+        self.pfn = to.nn.DataParallel(self.pfn, [self.device])
         self.cn = tv.models.Inception3(num_classes=7, init_weights=True)  # get classification network
         self.cn.to(self.device)
+        self.cn = to.nn.DataParallel(self.cn, [self.device])
         self.sub_models.append("fmg")
         self.sub_models.append("pfn")
         self.sub_models.append("cn")
@@ -397,15 +399,17 @@ class FMPN(NetworkSetup):
 
     def feed(self, batch):
         self.images, self.images_gray = batch["image"], batch["image_gray"]
-        self.images.to(self.device)
-        self.images_gray.to(self.device)
+        self.images = self.images.to(self.device)
+        self.images_gray = self.images_gray.to(self.device)
+        # print("FEED IMAGES GRAY IS CUDA: ", self.images_gray.is_cuda)
         if self.network_mode == "train":
             self.labels, self.masks = batch["label"], batch["mask"]
-            self.labels.to(self.device)
-            self.masks.to(self.device)
+            self.labels = self.labels.type(to.LongTensor).to(self.device)
+            self.masks = self.masks.to(self.device)
 
     def forward(self):
         self.predicted_mask = self.fmg(self.images_gray)
+        self.images_gray.to(self.device)
         self.heat_face = self.predicted_mask * self.images_gray
         self.fusion_imgs = self.pfn(self.images, self.heat_face)
         self.predicted_class = self.cn(self.fusion_imgs)
@@ -473,6 +477,7 @@ class RunSetup(object):
     def init_model(self, model):
         self.model = model
         self.model.setup()
+        # self.model.to(self.gpu)
 
     def load_data(self, train, test):
         self.train = train
@@ -491,8 +496,8 @@ class RunSetup(object):
                     tmp_loss = self.model.get_latest_losses()
                     cur_lr = self.model.update_learning_rate()
                     tepoch.set_postfix(loss=tmp_loss, accuracy="n.a.")
-        loss_per_epoch.append(tmp_loss)
-        lr_per_epoch.append(cur_lr)
+            loss_per_epoch.append(tmp_loss)
+            lr_per_epoch.append(cur_lr)
         info_dict = {
             'model': self.model_to_train,
             'epochs_total': epochs,
@@ -537,7 +542,7 @@ class RunFMG(RunSetup):
     def start(self):
         self.init_model()
         self.load_data()
-        self.train_loop(self.args.epochs)
+        self.train_loop()
 
     def init_model(self):
         model = FMG(self.args)
@@ -595,16 +600,11 @@ class RunFMPN(RunSetup):
 #
 #
 def get_scheduler(optimizer, args):
-    if args.lr_policy == 'lambda':
-        def lambda_rule(epoch):
-            lr_l = 1.0 - max(0, epoch + 1 + args.epoch_count - args.niter) / float(args.niter_decay + 1)
-            return lr_l
-        scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_rule)
-    elif args.lr_policy == 'step':
-        scheduler = lr_scheduler.StepLR(optimizer, step_size=args.lr_decay_iters, gamma=0.1)
-    elif args.lr_policy == 'plateau':
-        scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.2, threshold=0.01, patience=5)
-    else:
-        return NotImplementedError('learning rate policy [%s] is not implemented', args.lr_policy)
-    return scheduler
+    def lambda_rule(epoch):
+        if epoch >= args.start_lr_drop:  # 150
+            lr_l = 1.0
+        lr_l = 1.0 - max(0, epoch + 1 + args.epoch_count - args.niter) / float(args.niter_decay + 1)
+        return lr_l
 
+    scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_rule)
+    return scheduler

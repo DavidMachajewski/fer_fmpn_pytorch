@@ -1,4 +1,6 @@
-from args import Setup
+# from args import Setup
+from args2 import Setup
+
 import tqdm
 from tqdm import tqdm
 import os
@@ -8,7 +10,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 from torchvision import transforms, utils
 import torchvision
-from lib.models.models import BuildingBlock, ResNet18, FMPN
+# from lib.models.models import BuildingBlock, ResNet18, FMPN
 
 from torchviz import make_dot
 from torch.nn import Sequential
@@ -84,18 +86,29 @@ def fmg_train(model, dataloader):
                 running_loss = 0.0
 
 
-from lib.utils import imshow
-from lib.models.models import RunFMPN
+from lib.utils import imshow_tensor
+# from lib.models.models import RunFMPN
+from lib.models.models2 import train_inceptionv3
+from lib.agents.fmg_agent import FmgAgent
 
 if __name__ == '__main__':
     args = Setup().parse()
-
+    args.epochs = 300
     # run = RunSetup(args)
-
+    args.start_lr_drop = 150
+    args.model_to_train = "fmg"
     # run.create_folders()
 
-    runner = RunFMPN(args)
-    runner.start()
+    # runner = RunFMPN(args)
+    # runner.start()
+
+    """works"""
+    # train_inceptionv3(20)
+    args.load_ckpt = False
+    # print(args.lr_init)
+    fmgagent = FmgAgent(args)
+    fmgagent.run()
+
 
 """
     train, test = get_ckp(args, batch_size=16)

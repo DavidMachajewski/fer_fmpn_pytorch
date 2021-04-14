@@ -1,8 +1,14 @@
 import numpy as np
+from torchvision.utils import save_image
 import matplotlib.pylab as plt
 
 
-def imshow(img, one_channel=False):
+def imshow_tensor(img, one_channel=False):
+    """
+    :param img:
+    :param one_channel:
+    :return:
+    """
     if one_channel:
         img = img.mean(dim=0)
     img = img / 2 + 0.5
@@ -15,6 +21,9 @@ def imshow(img, one_channel=False):
         plt.imshow(np.transpose(npimg, (1, 2, 0)))
         plt.show()
 
+
+def save_tensor_img(img, path):
+    save_image(img, path)
 
 """
 Use it like this for example:
