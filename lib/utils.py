@@ -3,26 +3,36 @@ from torchvision.utils import save_image
 import matplotlib.pylab as plt
 
 
-def imshow_tensor(img, one_channel=False):
+def imshow_tensor(img, one_channel=False, path=None, show=False):
     """
     :param img:
     :param one_channel:
     :return:
     """
+
+    if path is not None:
+        saveto = path
+
     if one_channel:
         img = img.mean(dim=0)
     img = img / 2 + 0.5
     npimg = img.numpy()
-    print("shape: ", np.shape(npimg))
+    # print("shape: ", np.shape(npimg))
     if one_channel:
-        plt.imshow(npimg, cmap="turbo")  # turbo, jet, hot
-        plt.show()
+        if path is not None:
+            # plt.savefig(saveto)
+            plt.imsave(path, npimg, cmap="turbo")
+        if show:
+            plt.imshow(npimg, cmap="turbo")  # turbo, jet, hot
+            plt.show()
     else:
-        plt.imshow(np.transpose(npimg, (1, 2, 0)))
-        plt.show()
+        # plt.imshow(np.transpose(npimg, (1, 2, 0)))
+        plt.imsave(saveto, npimg, cmap="turbo")
+        # plt.show()
 
 
 def save_tensor_img(img, path):
+    #img = np.transpose(img, (1, 2, 0))
     save_image(img, path)
 
 """

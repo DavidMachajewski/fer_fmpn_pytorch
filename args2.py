@@ -43,13 +43,20 @@ class Setup(object):
         parser.add_argument('--masks', type=str, default="./datasets/masks/", help="path to masks folder")
         parser.add_argument('--labels', type=str, default="./datasets/masks/emotion_labels.pkl")
 
+        #
         # checkpoints
-        parser.add_argument('--load_ckpt', type=bool, default=True)
+        #
+        parser.add_argument('--load_ckpt', type=bool, default=False)
         #parser.add_argument('--ckpt_to_load', type=str,
         #                    default="./results/run_fmg_2021-04-12_18-57-23/train_fmg_2021-04-12_18-57-23\ckpt/fmg_2021-04-12_18-57-23ckpt.pth.tar",
         #                    help="")
         parser.add_argument('--ckpt_to_load', type=str, default="./results/run_fmg_2021-04-12_23-00-37/train_fmg_2021-04-12_23-00-37\ckpt/fmg_2021-04-12_23-00-37ckpt.pth.tar")
 
+        # ckpts for fmpn
+        parser.add_argument('--load_ckpt_fmg_only', type=bool, default=False)
+        parser.add_argument('--ckpt_fmg', type=str, default=None)
+        parser.add_argument('--ckpt_cn', type=str, default=None)
+        parser.add_argument('--ckpt_pfn', type=str, default=None)
 
         # result folder
         parser.add_argument('--result_folder', type=str, default='./results/', help="")

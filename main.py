@@ -86,28 +86,48 @@ def fmg_train(model, dataloader):
                 running_loss = 0.0
 
 
+def run_fmg_agent():
+    args = Setup().parse()
+    args.epochs = 300
+    args.start_lr_drop = 150
+    args.model_to_train = "fmg"
+    args.batch_size = 8
+    args.ckpt_to_load = "./results/run_fmg_2021-04-14_13-57-45/train_fmg_2021-04-14_13-57-45\ckpt/fmg_2021-04-14_13-57-45_epoch_299_ckpt.pth.tar"
+    args.load_ckpt = False
+
+    fmgagent = FmgAgent(args)
+    # fmgagent.run()
+    fmgagent.test("./results/run_fmg_2021-04-14_13-57-45/test_fmg_2021-04-14_13-57-45\plots/")
+
+
+def run_fmpn_agent():
+    args = Setup().parse()
+    args.epochs = 500
+    args.start_lr_drop = 400
+    args.batch_size = 8
+
+    # args.load_ckpt_fmg_only = False
+    # args.ckpt_fmg = "./results/run_fmg_2021-04-14_13-57-45/train_fmg_2021-04-14_13-57-45\ckpt/fmg_ckpt.pth.tar"
+
+    args.load_ckpt = True
+
+    args.ckpt_fmg = "./results/run_fmpn_2021-04-15_17-52-38/train_fmpn_2021-04-15_17-52-38\ckpt/fmpn_fmg_ckpt.pth.tar"
+    args.ckpt_pfn = "./results/run_fmpn_2021-04-15_17-52-38/train_fmpn_2021-04-15_17-52-38\ckpt/fmpn_pfn_ckpt.pth.tar"
+    args.ckpt_cn = "./results/run_fmpn_2021-04-15_17-52-38/train_fmpn_2021-04-15_17-52-38\ckpt/fmpn_cn_ckpt.pth.tar"
+
+    fmpn_agent = FmpnAgent(args)
+    fmpn_agent.run()
+
+
 from lib.utils import imshow_tensor
 # from lib.models.models import RunFMPN
 from lib.models.models2 import train_inceptionv3
 from lib.agents.fmg_agent import FmgAgent
+from lib.agents.fmpn_agent import FmpnAgent
 
 if __name__ == '__main__':
-    args = Setup().parse()
-    args.epochs = 300
-    # run = RunSetup(args)
-    args.start_lr_drop = 150
-    args.model_to_train = "fmg"
-    # run.create_folders()
 
-    # runner = RunFMPN(args)
-    # runner.start()
-
-    """works"""
-    # train_inceptionv3(20)
-    args.load_ckpt = False
-    # print(args.lr_init)
-    fmgagent = FmgAgent(args)
-    fmgagent.run()
+    run_fmpn_agent()
 
 
 """

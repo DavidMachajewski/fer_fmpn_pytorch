@@ -430,6 +430,7 @@ class FMPN(NetworkSetup):
         # print("total loss: ", self.total_fmpn_loss)
         self.total_fmpn_loss.backward()
 
+
     def optimizer_step(self):
         self.forward()
         self.optmizer_fmpn.zero_grad()

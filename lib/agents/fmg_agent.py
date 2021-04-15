@@ -1,5 +1,6 @@
 import os
 import time
+import tqdm
 import torch
 import torch.nn as nn
 from tqdm import trange
@@ -21,7 +22,7 @@ class FmgAgent(Agent):
         self.train_dl, self.test_dl = get_ckp(args=self.args,
                                               batch_size=self.args.batch_size,
                                               shuffle=True,
-                                              num_workers=4)
+                                              num_workers=0)
         self.loss = nn.MSELoss()
         self.opt = self.__init_optimizer__()
 
@@ -90,7 +91,7 @@ class FmgAgent(Agent):
             self.fmg.load_state_dict(checkpoint['model_state_dict'])
             self.opt.load_state_dict(checkpoint['model_optimizer'])
 
-            self.tmp_epoch = self.tmp_epoch[0]
+            self.tmp_epoch = self.tmp_epoch
             print("\n tmp_epoch: ", self.tmp_epoch)
             print("\n tmp_lr: ", self.opt.param_groups[0]['lr'])
 
@@ -100,7 +101,7 @@ class FmgAgent(Agent):
     def save_ckpt(self, file_name=None):
         print("Saving checkpoint...")
         if file_name is None:
-            file_name = self.name + "_" + self.timestamp + "ckpt.pth.tar"
+            file_name = self.name + "_" + self.timestamp + "_" + "epoch_" + str(self.tmp_epoch) + "_" + "ckpt.pth.tar"
         else:
             file_name = file_name
 
@@ -133,6 +134,9 @@ class FmgAgent(Agent):
             print("Resuming training...")
         else:
             print("Starting training...")
+
+        self.fmg.train()
+
         with trange(self.tmp_epoch, self.args.epochs, desc="Epoch", unit="epoch") as epochs:
             for epoch in epochs:
                 self.tmp_epoch = epoch
@@ -141,7 +145,7 @@ class FmgAgent(Agent):
                 self.list_train_loss.append(sample_label.cpu().detach().numpy())
                 self.list_lr.append(self.opt.param_groups[0]['lr'])
 
-                if epoch % 4 == 0:
+                if epoch % 5 == 0:
                     save_tensor_img(img=pred_mask_sample.cpu().detach(),
                                     path=self.train_plots + "mask_" + str(
                                         sample_label.cpu().detach().numpy()) + "_epoch_" + str(epoch) + ".png")
@@ -150,7 +154,12 @@ class FmgAgent(Agent):
 
                 epochs.set_postfix(loss="{:.3f}".format(epoch_loss, prec='.3'),
                                    lr="{:.8f}".format(self.opt.param_groups[0]['lr'], prec='.8'))
-        self.save_resultlists_as_dict(self.train_path + "train_logs.pickle")
+
+                if epoch % 30 == 0:
+                    self.save_ckpt()
+                    self.save_resultlists_as_dict(self.train_path + "/" + "epoch_" + str(epoch) + "_train_logs.pickle")
+
+        self.save_resultlists_as_dict(self.train_path + "end_train_logs.pickle")
         self.save_ckpt()
 
         # optionally saving of checkpoints while training. Make argument e.g. self.args.save_nth_ckpt = 10
@@ -159,27 +168,26 @@ class FmgAgent(Agent):
         """
         :return: Epoch loss and a sample of a predicted mask
         """
-        self.fmg.train()
         epoch_loss, predicted_masks = 0.0, None
+        with tqdm.tqdm(self.train_dl, desc="Batch", unit="batches") as tbatch:
+            for i, batch in enumerate(tbatch):
+                images_gray = batch["image_gray"].to(self.device)
+                label_masks = batch["mask"].to(self.device)
+                labels = batch["label"]
 
-        for i, batch in enumerate(self.train_dl):
-            images_gray = batch["image_gray"].to(self.device)
-            label_masks = batch["mask"].to(self.device)
-            labels = batch["label"]
+                self.opt.zero_grad()
 
-            self.opt.zero_grad()
+                predicted_masks = self.fmg(images_gray).to(self.device)
+                tmp_loss = self.loss(predicted_masks, label_masks)
 
-            predicted_masks = self.fmg(images_gray).to(self.device)
-            tmp_loss = self.loss(predicted_masks, label_masks)
+                tmp_loss.backward()
+                self.opt.step()
 
-            tmp_loss.backward()
-            self.opt.step()
-
-            epoch_loss += tmp_loss.item()
-        epoch_loss = epoch_loss / len(self.train_dl)  # get the real sample number from dataset and batch size
+                epoch_loss += tmp_loss.item()
+            epoch_loss = epoch_loss / len(self.train_dl)  # get the real sample number from dataset and batch size
         return epoch_loss, predicted_masks[0], labels[0]  # we dont need accuracy for fmg training
 
-    def test(self):
+    def test(self, path=None):
         """Predicts masks for the dataset"""
         # 2 cases
         #
@@ -189,7 +197,13 @@ class FmgAgent(Agent):
         print("Starting evaluation...")
         self.fmg.eval()
 
+        if path is not None:
+            save_to = path
+        else:
+            save_to = self.test_plots
+
         for i, batch in enumerate(self.test_dl):
+            image_org = batch["image"]
             images_gray = batch["image_gray"].to(self.device)
             label_masks = batch["mask"].to(self.device)
             labels = batch["label"]
@@ -198,13 +212,23 @@ class FmgAgent(Agent):
             #
             #
             predicted_masks = self.fmg(images_gray).to(self.device)
-
+            save_tensor_img(img=images_gray[0].cpu().detach(),
+                            path=save_to + "orig_gray_img_"
+                                 + str(labels[0].cpu().detach().numpy()) + "_batch_" + str(i) + ".png")
             save_tensor_img(img=predicted_masks[0].cpu().detach(),
-                            path=self.test_plots + "pred_mask_"
+                            path=save_to + "pred_mask_"
                                  + str(labels[0].cpu().detach().numpy()) + "_batch_" + str(i) + ".png")
+            imshow_tensor(img=predicted_masks[0].cpu().detach(),
+                            path=save_to + "pred_mask_"
+                                 + str(labels[0].cpu().detach().numpy()) + "_batch_" + str(i) + "_heat.png",
+                          one_channel=True)
             save_tensor_img(img=label_masks[0].cpu().detach(),
-                            path=self.test_plots + "orig_mask_"
+                            path=save_to + "orig_mask_"
                                  + str(labels[0].cpu().detach().numpy()) + "_batch_" + str(i) + ".png")
+            imshow_tensor(img=predicted_masks[0].cpu().detach(),
+                          path=save_to + "orig_mask_"
+                               + str(labels[0].cpu().detach().numpy()) + "_batch_" + str(i) + "_heat.png",
+                          one_channel=True)
 
 
 def get_scheduler(optimizer, args):
