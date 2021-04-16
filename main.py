@@ -106,17 +106,24 @@ def run_fmpn_agent():
     args.start_lr_drop = 400
     args.batch_size = 8
 
-    # args.load_ckpt_fmg_only = False
+    # first training
+    # args.load_ckpt_fmg_only = True
     # args.ckpt_fmg = "./results/run_fmg_2021-04-14_13-57-45/train_fmg_2021-04-14_13-57-45\ckpt/fmg_ckpt.pth.tar"
 
     args.load_ckpt = True
 
-    args.ckpt_fmg = "./results/run_fmpn_2021-04-15_17-52-38/train_fmpn_2021-04-15_17-52-38\ckpt/fmpn_fmg_ckpt.pth.tar"
-    args.ckpt_pfn = "./results/run_fmpn_2021-04-15_17-52-38/train_fmpn_2021-04-15_17-52-38\ckpt/fmpn_pfn_ckpt.pth.tar"
-    args.ckpt_cn = "./results/run_fmpn_2021-04-15_17-52-38/train_fmpn_2021-04-15_17-52-38\ckpt/fmpn_cn_ckpt.pth.tar"
+    # args.ckpt_fmg = "./results/run_fmpn_2021-04-15_17-52-38/train_fmpn_2021-04-15_17-52-38\ckpt/fmpn_fmg_ckpt.pth.tar"
+    # args.ckpt_pfn = "./results/run_fmpn_2021-04-15_17-52-38/train_fmpn_2021-04-15_17-52-38\ckpt/fmpn_pfn_ckpt.pth.tar"
+    # args.ckpt_cn = "./results/run_fmpn_2021-04-15_17-52-38/train_fmpn_2021-04-15_17-52-38\ckpt/fmpn_cn_ckpt.pth.tar"
+
+    # for testing ----
+    args.ckpt_fmg = "./results/run_fmpn_2021-04-16_00-40-16/train_fmpn_2021-04-16_00-40-16/fmpn_fmg_ckpt.pth.tar"
+    args.ckpt_pfn = "./results/run_fmpn_2021-04-16_00-40-16/train_fmpn_2021-04-16_00-40-16/fmpn_pfn_ckpt.pth.tar"
+    args.ckpt_cn = "./results/run_fmpn_2021-04-16_00-40-16/train_fmpn_2021-04-16_00-40-16/fmpn_cn_ckpt.pth.tar"
 
     fmpn_agent = FmpnAgent(args)
-    fmpn_agent.run()
+    # fmpn_agent.run()
+    fmpn_agent.test()
 
 
 from lib.utils import imshow_tensor
@@ -124,11 +131,58 @@ from lib.utils import imshow_tensor
 from lib.models.models2 import train_inceptionv3
 from lib.agents.fmg_agent import FmgAgent
 from lib.agents.fmpn_agent import FmpnAgent
+import pickle
 
 if __name__ == '__main__':
 
+    # model = torchvision.models.inception_v3(pretrained=True, num_classes=7)
+
     run_fmpn_agent()
 
+    fil_to_read = open("./results/run_fmpn_2021-04-16_00-40-16/train_fmpn_2021-04-16_00-40-16\end_train_logs.pickle","rb")
+    loaded_dict = pickle.load(fil_to_read)
+    keys = list(loaded_dict.keys())
+    print(loaded_dict)
+    print(keys)
+
+    # losses
+    """
+    plt.plot(loaded_dict['train_loss'])
+    plt.plot(loaded_dict['train_loss_fmg'])
+    plt.plot(loaded_dict['train_loss_cn'])
+    plt.title('training loss per epoch')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train_loss_total', 'train_loss_fmg', 'train_loss_cn'], loc='upper left')
+    plt.show()
+    """
+    """
+    # train acc
+    lot = loaded_dict['train_acc']
+    accs = []
+    for tensor in lot:
+        accs.append(tensor.cpu().item())
+    print(accs)
+    print(type(loaded_dict['train_acc']))
+    plt.plot(accs)
+    plt.title('training accuracy per epoch')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['training accuracy'], loc='lower right')
+    plt.show()
+    """
+
+    # learning rates
+    """
+    plt.plot(loaded_dict['lr_fmg'])
+    plt.plot(loaded_dict['lr_pfn'])
+    plt.plot(loaded_dict['lr_cn'])
+    plt.title('lr per epoch')
+    plt.ylabel('lr')
+    plt.xlabel('epoch')
+    plt.legend(['lr_fmg', 'lr_pfn=lr_cn', 'lr_cn'], loc='upper left')
+    plt.show()
+    """
 
 """
     train, test = get_ckp(args, batch_size=16)

@@ -35,6 +35,9 @@ def save_tensor_img(img, path):
     #img = np.transpose(img, (1, 2, 0))
     save_image(img, path)
 
+
+
+
 """
 Use it like this for example:
 

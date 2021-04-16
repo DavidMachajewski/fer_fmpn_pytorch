@@ -6,6 +6,10 @@ import torch
 from tqdm import trange, tqdm
 import torchvision as tv
 import pickle
+import numpy as np
+import seaborn as sn
+import pandas as pd
+import matplotlib.pyplot as plt
 
 
 class FmpnAgent(Agent):
@@ -16,6 +20,8 @@ class FmpnAgent(Agent):
         self.pfn = PriorFusionNetwork()
         # self.cn = tv.models.Inception3(num_classes=7, init_weights=True)
         self.cn = torch.hub.load('pytorch/vision:v0.9.0', 'inception_v3', pretrained=True)
+        self.cn.fc = nn.Linear(2048, 7)
+        # print(self.cn)
 
         self.opt = self.__init_optimizer__()
 
@@ -287,6 +293,10 @@ class FmpnAgent(Agent):
     def calc_accuracy(self, predictions, labels):
         # print("Predictions: \n", predictions)
         # print("Labels: \n", labels)
+        #
+        # :TODO: dont forget softmax after cn ooutput!
+        # cn output is not a distribution
+        #
         classes = torch.argmax(predictions, dim=-1)
         # print("Classes after argmax: \n", classes)
         return torch.mean((classes == labels).float())
@@ -298,25 +308,89 @@ class FmpnAgent(Agent):
 
         epoch_fmg_val_loss = 0.0
         epoch_cn_val_loss = 0.0
+        epoch_total_val_loss = 0.0
+        epoch_val_acc = 0.0
+
+        #  for confusion matrix
+        all_predictions = torch.tensor([]).to(self.device)
+        all_labels = torch.tensor([]).to(self.device)
+        cnfmat = torch.zeros(7, 7, dtype=torch.int32)
+
         with tqdm(self.test_dl, desc="Batch", unit="batches") as tbatch:
-            for i, batch in enumerate(tbatch):
-                images = batch["image"].to(self.device)
-                images_gray = batch["image_gray"].to(self.device)
-                label_masks = batch["mask"].to(self.device)
-                labels = batch["label"].to(self.device)
+            with torch.no_grad():
+                for i, batch in enumerate(tbatch):  #
+                    images = batch["image"].to(self.device)
+                    images_gray = batch["image_gray"].to(self.device)
+                    label_masks = batch["mask"].to(self.device)
+                    labels = batch["label"].to(self.device)
 
-                predicted_masks = self.fmg(images_gray).to(self.device)
-                heat_face = images_gray * predicted_masks
-                heat_face.to(self.device)
-                fusion_img = self.pfn(images, heat_face)
-                classifications = self.cn(fusion_img)
+                    predicted_masks = self.fmg(images_gray).to(self.device)
+                    heat_face = images_gray * predicted_masks
+                    heat_face.to(self.device)
+                    fusion_img = self.pfn(images, heat_face)
+                    classifications = self.cn(fusion_img)
+                    # print("classifications: ", classifications)
+                    # print("classification shape:", np.shape(classifications))
+                    classification_prob = torch.softmax(classifications, dim=0)
+                    # print("class after softmax: ", classification_prob)
+                    classifications = classification_prob
 
-                fmg_loss = self.loss_fmg_fn(predicted_masks, label_masks)
-                cn_loss = self.loss_cn_fn(classifications.logits, labels)
-                epoch_fmg_val_loss += fmg_loss.item()
-                epoch_cn_val_loss += cn_loss.item()
+                    fmg_loss = self.loss_fmg_fn(predicted_masks, label_masks)
 
-                total_loss = self.loss_total_fn(fmg_loss, cn_loss)
+                    # classifications_argmax = torch.argmax(classifications)
+                    # print("classes: ", classifications)
+                    cn_loss = self.loss_cn_fn(classifications, labels)
+
+                    epoch_fmg_val_loss += fmg_loss.item()
+                    epoch_cn_val_loss += cn_loss.item()
+
+                    total_loss = self.loss_total_fn(fmg_loss, cn_loss)
+
+                    epoch_total_val_loss += total_loss.item()
+
+                    # pass classifications to all_predictions tensor
+                    all_predictions = torch.cat((all_predictions, torch.argmax(classifications, dim=-1)))
+                    all_labels = torch.cat((all_labels, labels))
+
+                    batch_val_acc = self.calc_accuracy(classifications, labels)
+                    epoch_val_acc += batch_val_acc
+
+                    tbatch.set_postfix(val_loss="{:.3f}".format(total_loss, prec='.3'),
+                                       val_accuracy="{:.3f}".format(batch_val_acc, prec='.3'))
+
+                epoch_total_val_loss = epoch_total_val_loss / len(self.test_dl)
+                epoch_val_acc = epoch_val_acc / len(self.test_dl)
+                # print("val_acc: ", epoch_val_acc)
+
+                print("val_loss: {0} \t val_accuracy: {1}".format(epoch_total_val_loss, epoch_val_acc))
+
+                # creating confusion matrix now
+                print(all_predictions)
+                print(all_labels)
+                print("allpred: ", np.shape(all_predictions))
+                print("allpred: ", np.shape(all_labels))
+                stacked_pred_label = torch.stack((all_labels, all_predictions), dim=1)
+                print(stacked_pred_label.shape)
+                print(stacked_pred_label)
+                for pair in stacked_pred_label:
+                    label, pred = pair.tolist()
+                    cnfmat[int(label), int(pred)] = cnfmat[int(label), int(pred)] + 1
+
+                print(cnfmat)
+                # save confusion matrix to file
+                path = "./results/run_fmpn_2021-04-16_00-40-16/train_fmpn_2021-04-16_00-40-16\plots/"
+                np.savetxt(path+"cnfmat.txt", cnfmat.numpy())
+
+                cnfmat_df = pd.DataFrame(cnfmat.detach().cpu().numpy(),
+                                         index=["anger", "contempt", "disgust", "fear", "happy", "sadness", "surprise"],
+                                         columns=["anger", "contempt", "disgust", "fear", "happy", "sadness", "surprise"])
+
+                cnfmat_df2 = pd.DataFrame(cnfmat.detach().cpu().numpy(),
+                                         columns=["anger", "contempt", "disgust", "fear", "happy", "sadness", "surprise"])
 
 
-
+                ax = sn.heatmap(cnfmat_df, annot=True, annot_kws={"size": 10}, fmt='d')
+                plt.title('Confusion matrix of FMPN predictions on the CK+ dataset', fontsize=12)
+                plt.yticks(rotation=0)
+                plt.savefig(path+"cnfmat_plot.png")
+                plt.show()
