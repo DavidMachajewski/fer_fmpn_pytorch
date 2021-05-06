@@ -1,5 +1,7 @@
 import os
 import pickle
+import re
+
 from tqdm import tqdm
 import time
 import torch as to
@@ -12,6 +14,7 @@ from lib.dataloader.datasets import get_ckp
 import scipy
 import numpy as np
 import torch.nn.functional as F
+
 
 
 class BuildingBlock(nn.Module):
@@ -593,12 +596,63 @@ class RunFMPN(RunSetup):
         pass
 
 
+def inceptionv3(pretrained=False):
+    """Input size for inception net is (3. 229, 299) """
+    if pretrained:
+        print("Loading pretrained model...")
+        inc = tv.models.Inception3(transform_input=True,
+                                   init_weights=False)
+        state_dict = to.hub.load_state_dict_from_url('https://download.pytorch.org/models/inception_v3_google-1a9a5a14.pth')
+        state = {k: v for k, v in state_dict.items() if k in inc.state_dict()}
+        inc.load_state_dict(state)
+        print("Loaded ")
+        inc.fc = nn.Linear(2048, 7)
+        to.nn.init.xavier_normal_(inc.fc.weight.data, gain=0.02)
+        to.nn.init.constant_(inc.fc.bias.data, 0.0)
+    else:
+        print("Loading non pretrained model...")
+        inc = tv.models.Inception3(num_classes=7)
+        inc.fc = nn.Linear(2048, 7)
+    return inc
 
 
-#
+def densenet121(args, pretrained=False):
+    if pretrained:
+        print("Initialize pretrained model.")
+        """http://data.lip6.fr/cadene/pretrainedmodels/densenet121-fbdb23505.pth"""
+        dense = tv.models.densenet121(pretrained=pretrained,
+                                      # init_weights=False,
+                                      # growth_rate=args.dn_growth,
+                                      # num_init_features=args.dn_features,
+                                      # bn_size=args.dn_bnsize
+                                      )
+        state_dict = to.hub.load_state_dict_from_url('http://data.lip6.fr/cadene/pretrainedmodels/densenet121-fbdb23505.pth')
+        pattern = re.compile(
+            r'^(.*denselayer\d+\.(?:norm|relu|conv))\.((?:[12])\.(?:weight|bias|running_mean|running_var))$')
+        for key in list(state_dict.keys()):
+            res = pattern.match(key)
+            if res:
+                new_key = res.group(1) + res.group(2)
+                state_dict[new_key] = state_dict[key]
+                del state_dict[key]
+        dense.load_state_dict(state_dict)
+        print("Loaded ")
+        # dense.fc = nn.Linear(2048, 7)
+        dense.classifier = nn.Linear(1024, 7)
+        to.nn.init.xavier_normal_(dense.classifier.weight.data, gain=0.02)
+        to.nn.init.constant_(dense.classifier.bias.data, 0.0)
+    else:
+        print("Inititialize non pretrained model.")
+        dense = tv.models.densenet121(num_classes=7  #,
+                                      #growth_rate=args.dn_growth,
+                                      #num_init_features=args.dn_features,
+                                      #bn_size=args.dn_bnsize
+                                      )
+    return dense
+
+
 #
 #  SCHEDULER
-#
 #
 def get_scheduler(optimizer, args):
     def lambda_rule(epoch):

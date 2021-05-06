@@ -10,9 +10,6 @@ def imshow_tensor(img, one_channel=False, path=None, show=False):
     :return:
     """
 
-    if path is not None:
-        saveto = path
-
     if one_channel:
         img = img.mean(dim=0)
     img = img / 2 + 0.5
@@ -34,8 +31,6 @@ def imshow_tensor(img, one_channel=False, path=None, show=False):
 def save_tensor_img(img, path):
     #img = np.transpose(img, (1, 2, 0))
     save_image(img, path)
-
-
 
 
 """

@@ -1,16 +1,20 @@
-from lib.agents.agent import Agent
-from lib.models.models import FacialMaskGenerator, PriorFusionNetwork
-from lib.dataloader.datasets import get_ckp
-import torch.nn as nn
 import torch
-from tqdm import trange, tqdm
-import torchvision as tv
 import pickle
-import numpy as np
-import seaborn as sn
-import pandas as pd
-import matplotlib.pyplot as plt
+import torch.nn as nn
+from tqdm import trange, tqdm
+from lib.utils import save_tensor_img
+from lib.agents.agent import Agent
+from lib.dataloader.datasets import get_ckp
+from lib.eval.eval_utils import make_cnfmat_plot
+from lib.models.models import FacialMaskGenerator, PriorFusionNetwork, inceptionv3
 
+#################
+# RUN WITH PRETRAINED InceptionNet as classification network
+# >> for %i in (0) do python main.py --mode train --gpu_id 0 --model_to_train fmpn --epochs 500 --save_ckpt_intv 50 --load_size 320 --final_size 299 --load_ckpt_fmg_only 1 --fmpn_cn inc_v3 --fmpn_cn_pretrained 1 --
+# dataset ckp --batch_size 8 --scheduler_type linear_x --ckpt_fmg ./results/run_fmg_2021-04-14_13-57-45/train_fmg_2021-04-14_13-57-45\ckpt/fmg_ckpt.pth.tar --trainsplit train_ids_%i.csv --testsplit test_ids_%i.csv
+#
+#
+#################
 
 class FmpnAgent(Agent):
     def __init__(self, args):
@@ -19,8 +23,12 @@ class FmpnAgent(Agent):
         self.fmg = FacialMaskGenerator()
         self.pfn = PriorFusionNetwork()
         # self.cn = tv.models.Inception3(num_classes=7, init_weights=True)
-        self.cn = torch.hub.load('pytorch/vision:v0.9.0', 'inception_v3', pretrained=True)
-        self.cn.fc = nn.Linear(2048, 7)
+        #
+        # :TODO: load with class function the right cn...
+        #
+        # self.cn = torch.hub.load('pytorch/vision:v0.9.0', 'inception_v3', pretrained=True)
+        # self.cn.fc = nn.Linear(2048, 7)
+        self.cn = self.init_cn()
         # print(self.cn)
 
         self.opt = self.__init_optimizer__()
@@ -33,7 +41,7 @@ class FmpnAgent(Agent):
         self.train_dl, self.test_dl = get_ckp(args=self.args,
                                               batch_size=self.args.batch_size,
                                               shuffle=True,
-                                              num_workers=4)
+                                              num_workers=8)
         self.loss_fmg_fn = nn.MSELoss()
         self.loss_cn_fn = nn.CrossEntropyLoss()
 
@@ -42,15 +50,23 @@ class FmpnAgent(Agent):
         # self.opt = self.__init_optimizer__()
 
         self.list_train_loss_fmg = []
+        self.list_train_loss_pfn = []
         self.list_train_loss_cn = []
-        self.list_train_loss_cn = []
+        self.list_test_loss_fmg = []
+        self.list_test_loss_pfn = []
+        self.list_test_loss_cn = []
+
         self.list_lr_fmg = []
         self.list_lr_cn = []
         self.list_lr_pfn = []
 
         self.epoch_counter = 0
 
+        self.train_logs_path = None
+
         if self.args.load_ckpt:
+            # resume a already trained fmpn by loading the ckpts for fmg, pfn und cn
+            # use this to continue training or infere images
             self.opt.add_param_group({'params': self.pfn.parameters()})
             self.opt.add_param_group({'params': self.cn.parameters()})
             self.load_ckpt(file_name_fmg=self.args.ckpt_fmg,  # load the pretrained fmg
@@ -58,16 +74,19 @@ class FmpnAgent(Agent):
                            file_name_cn=self.args.ckpt_cn)
 
         if self.args.load_ckpt_fmg_only:
+            # resume just the facial mask generator
+            # use this for first trainings
             self.load_fmg(file_name_fmg=self.args.ckpt_fmg)
             self.opt.add_param_group({'params': self.pfn.parameters()})
             self.opt.add_param_group({'params': self.cn.parameters()})
 
-
-
+    def init_cn(self):
+        if self.args.fmpn_cn == "inc_v3":
+            return inceptionv3(pretrained=self.args.fmpn_cn_pretrained)
 
     def loss_total_fn(self, loss_fmg, loss_cn):
         """10, 1 are lambda1, lambda2 - add to args!!!"""
-        return 10*loss_fmg + 1*loss_cn  # lambda1, lambda2 to args!
+        return 10 * loss_fmg + 1 * loss_cn  # lambda1, lambda2 to args!
 
     def __adjust_lr__(self):
         """Adjust the learning rate.
@@ -80,22 +99,29 @@ class FmpnAgent(Agent):
         of fmg to 0.00001 while rest uses 0.0001.
         Step 1) is done by first run of the fmg
         trained by a single run."""
-        factor_cn = (self.args.lr_init - self.args.lr_end) / (self.args.epochs - self.args.start_lr_drop_fmpn)
-        factor_fmg = (self.args.lr_init_after - self.args.lr_end) / (self.args.epochs - self.args.start_lr_drop_fmpn)
-        print("adjusting factor cn: ", factor_cn)
-        print("adjusting factor fmg: ", factor_fmg)
-        if self.tmp_epoch >= self.args.start_lr_drop_fmpn:  # >= 400
-            # we load fmg with tmp_epoch value of 300
-            # for group in self.opt.param_groups:
-            #     group['lr'] = group['lr'] - factor
-            #     print("adjust lrts: ", group['lr'])
-            self.opt.param_groups[0]['lr'] = self.opt.param_groups[0]['lr'] - factor_fmg
-            self.opt.param_groups[1]['lr'] = self.opt.param_groups[1]['lr'] - factor_cn
-            self.opt.param_groups[2]['lr'] = self.opt.param_groups[2]['lr'] - factor_cn
-        else:
-            # keep fmg lr at 0.00001 until epoch 400
+        if self.args.scheduler_type == "linear_x":
+            factor_cn = (self.args.lr_init - self.args.lr_end) / (self.args.epochs - self.args.start_lr_drop_fmpn)
+            factor_fmg = (self.args.lr_init_after - self.args.lr_end) / (self.args.epochs - self.args.start_lr_drop_fmpn)
+
+            # print("adjusting factor cn: ", factor_cn)
+            # print("adjusting factor fmg: ", factor_fmg)
+
+            if self.tmp_epoch >= self.args.start_lr_drop_fmpn:  # >= 400
+                # we load fmg with tmp_epoch value of 300
+                # for group in self.opt.param_groups:
+                #     group['lr'] = group['lr'] - factor
+                #     print("adjust lrts: ", group['lr'])
+                self.opt.param_groups[0]['lr'] = self.opt.param_groups[0]['lr'] - factor_fmg
+                self.opt.param_groups[1]['lr'] = self.opt.param_groups[1]['lr'] - factor_cn
+                self.opt.param_groups[2]['lr'] = self.opt.param_groups[2]['lr'] - factor_cn
+            else:
+                # keep fmg lr at 0.00001 until epoch 400
+                self.opt.param_groups[0]['lr'] = self.args.lr_init_after
+                # lr for pfn, cn stay constant at 0.0001 until epoch 400
+                self.opt.param_groups[1]['lr'] = self.args.lr_init
+                self.opt.param_groups[2]['lr'] = self.args.lr_init
+        elif self.args.scheduler_type == "const":
             self.opt.param_groups[0]['lr'] = self.args.lr_init_after
-            # lr for pfn, cn stay constant at 0.0001 until epoch 400
             self.opt.param_groups[1]['lr'] = self.args.lr_init
             self.opt.param_groups[2]['lr'] = self.args.lr_init
 
@@ -113,7 +139,7 @@ class FmpnAgent(Agent):
                 betas=(self.args.beta1, 0.999)
             )
             """
-            opt = torch.optim.Adam(self.fmg.parameters(),lr=self.args.lr_init,betas=(self.args.beta1, 0.9999))
+            opt = torch.optim.Adam(self.fmg.parameters(), lr=self.args.lr_init, betas=(self.args.beta1, 0.9999))
         return opt
 
     def __set_device__(self):
@@ -190,13 +216,18 @@ class FmpnAgent(Agent):
         super(FmpnAgent, self).__create_folders__(self.name)
 
     def save_resultlists_as_dict(self, path):
+        print("Saving current results as dict...\n")
+        # print("train_loss: \n", self.list_train_loss)
+        # print("train acc: \n", self.list_train_acc)
+        # print("val loss: \n", self.list_test_loss)
+        # print("val acc: \n", self.list_test_acc)
         dict = {
             'train_loss': self.list_train_loss,
             'train_loss_fmg': self.list_train_loss_fmg,
             'train_loss_cn': self.list_train_loss_cn,
             'train_acc': self.list_train_acc,
-            'test_loss': self.list_test_loss,
             'test_acc': self.list_test_acc,
+            'test_loss': self.list_test_loss,
             'lr_fmg': self.list_lr_fmg,
             'lr_pfn': self.list_lr_pfn,
             'lr_cn': self.list_lr_cn
@@ -208,22 +239,23 @@ class FmpnAgent(Agent):
         self.__create_folders__()
         self.save_args(self.run_path + "args.txt")
         self.train()
-        self.test()
+        # self.test()
 
     def train(self):
-        self.fmg.train()
-        self.pfn.train()
-        self.cn.train()
-
         with trange(self.tmp_epoch, self.args.epochs, desc="Epoch", unit="epoch") as epochs:
             for epoch in epochs:
+                self.fmg.train()
+                self.pfn.train()
+                self.cn.train()
+
                 self.tmp_epoch = epoch
                 self.epoch_counter += 1
 
                 # train one epoch
                 epoch_loss, epoch_acc, epoch_loss_fmg, epoch_loss_cn = self.train_epoch()
+                epoch_total_val_loss, epoch_val_acc, epoch_fmg_val_loss, epoch_cn_val_loss = self.eval_epoch()
 
-                # append learning rates for fmg and cn and total
+                # append training learning rates for fmg and cn and total
                 self.list_train_loss.append(epoch_loss)
                 self.list_train_loss_fmg.append(epoch_loss_fmg)
                 self.list_train_loss_cn.append(epoch_loss_cn)
@@ -234,61 +266,144 @@ class FmpnAgent(Agent):
 
                 self.list_train_acc.append(epoch_acc)
 
+                # append testing results to arrays
+                self.list_test_loss.append(epoch_total_val_loss)
+                self.list_test_loss_fmg.append(epoch_fmg_val_loss)
+                self.list_test_loss_cn.append(epoch_cn_val_loss)
+                self.list_test_acc.append(epoch_val_acc)
+
                 self.__adjust_lr__()
 
                 epochs.set_postfix(loss="{:.3f}".format(epoch_loss, prec='.3'),
                                    accuracy="{:.3f}".format(epoch_acc.item(), prec='.3'),
+                                   val_loss="{:.3f}".format(epoch_total_val_loss, prec='.3'),
+                                   val_accuracy="{:.3f}".format(epoch_val_acc, prec='.3'),
                                    lr_fmg="{:.6f}".format(self.list_lr_fmg[-1], prec='.6'),
                                    lr_cn="{:.6f}".format(self.list_lr_cn[-1], prec='.6'))
 
-                if epoch % 25 == 0:
+                if epoch % self.args.save_ckpt_intv == 0:
                     self.save_ckpt()
                     self.save_resultlists_as_dict(self.train_path + "/" + "epoch_" + str(epoch) + "_train_logs.pickle")
 
-            self.save_resultlists_as_dict(self.train_path + "end_train_logs.pickle")
             # save last ckpt
             self.save_ckpt()
-
+            self.train_logs_path = self.train_path + "end_train_logs.pickle"
+            self.save_resultlists_as_dict(self.train_logs_path)
 
     def train_epoch(self):
         epoch_loss = 0.0
         epoch_fmg_loss = 0.0
         epoch_cn_loss = 0.0
         epoch_acc = 0.0
-        with tqdm(self.train_dl, desc="Batch", unit="batches") as tbatch:
-            for i, batch in enumerate(tbatch):
+
+        for i, batch in enumerate(self.train_dl):
+            images = batch["image"].to(self.device)
+            images_gray = batch["image_gray"].to(self.device)
+            label_masks = batch["mask"].to(self.device)
+            labels = batch["label"].to(self.device)
+
+            self.opt.zero_grad()
+
+            predicted_masks = self.fmg(images_gray).to(self.device)
+            heat_face = images_gray * predicted_masks
+
+            heat_face.to(self.device)
+            fusion_img = self.pfn(images, heat_face)
+
+
+            # save images
+            if self.tmp_epoch == 299 or self.tmp_epoch % 50 == 0:
+                for idx in range(len(predicted_masks)):
+                    save_tensor_img(img=predicted_masks[idx].cpu().detach(),
+                                    path=self.train_plots + "pred_mask_"
+                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(self.tmp_epoch) + "_batch_" + str(i) + ".png")
+                    save_tensor_img(img=images_gray[idx].cpu().detach(),
+                                    path=self.train_plots + "gray_img_"
+                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(self.tmp_epoch) + "_batch_" + str(i) + ".png")
+                    save_tensor_img(img=heat_face[idx].cpu().detach(),
+                                    path=self.train_plots + "multiplied_img_"
+                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(self.tmp_epoch) + "_batch_" + str(i) + ".png")
+
+                    save_tensor_img(img=fusion_img[idx].cpu().detach(),
+                                    path=self.train_plots + "fusioned_img_"
+                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(self.tmp_epoch) + "_batch_" + str(i) + ".png")
+
+            classifications = self.cn(fusion_img)
+
+            # apply softmax to logits
+            classifications_soft = torch.softmax(classifications.logits, dim=-1)
+
+            fmg_loss = self.loss_fmg_fn(predicted_masks, label_masks)
+            # cn_loss = self.loss_cn_fn(classifications.logits, labels)
+            cn_loss = self.loss_cn_fn(classifications_soft, labels)
+
+            epoch_fmg_loss += fmg_loss.item()
+            epoch_cn_loss += cn_loss.item()
+
+            total_loss = self.loss_total_fn(fmg_loss, cn_loss)
+
+            total_loss.backward()
+            self.opt.step()
+
+            epoch_loss += total_loss.item()
+            epoch_acc += self.calc_accuracy(classifications_soft, labels)
+        epoch_acc = epoch_acc / len(self.train_dl)
+
+        epoch_fmg_loss = epoch_fmg_loss / len(self.train_dl)
+        epoch_cn_loss = epoch_cn_loss / len(self.train_dl)
+
+        epoch_loss = epoch_loss / len(self.train_dl)
+        return epoch_loss, epoch_acc, epoch_fmg_loss, epoch_cn_loss
+
+    def eval_epoch(self):
+        self.fmg.eval()
+        self.pfn.eval()
+        self.cn.eval()
+
+        epoch_fmg_val_loss = 0.0
+        epoch_cn_val_loss = 0.0
+        epoch_total_val_loss = 0.0
+        epoch_val_acc = 0.0
+
+
+        with torch.no_grad():
+            for i, batch in enumerate(self.test_dl):  #
                 images = batch["image"].to(self.device)
                 images_gray = batch["image_gray"].to(self.device)
                 label_masks = batch["mask"].to(self.device)
                 labels = batch["label"].to(self.device)
-
-                self.opt.zero_grad()
 
                 predicted_masks = self.fmg(images_gray).to(self.device)
                 heat_face = images_gray * predicted_masks
                 heat_face.to(self.device)
                 fusion_img = self.pfn(images, heat_face)
                 classifications = self.cn(fusion_img)
+                # print("classifications: ", classifications)
+                # print("classification shape:", np.shape(classifications))
+                classification_prob = torch.softmax(classifications, dim=-1)
+                # print("class after softmax: ", classification_prob)
+                classifications = classification_prob
 
                 fmg_loss = self.loss_fmg_fn(predicted_masks, label_masks)
-                cn_loss = self.loss_cn_fn(classifications.logits, labels)
-                epoch_fmg_loss += fmg_loss.item()
-                epoch_cn_loss += cn_loss.item()
+
+                # classifications_argmax = torch.argmax(classifications)
+                # print("classes: ", classifications)
+                cn_loss = self.loss_cn_fn(classifications, labels)
+
+                epoch_fmg_val_loss += fmg_loss.item()
+                epoch_cn_val_loss += cn_loss.item()
 
                 total_loss = self.loss_total_fn(fmg_loss, cn_loss)
+                epoch_val_acc += self.calc_accuracy(classifications, labels)
 
-                total_loss.backward()
-                self.opt.step()
+                epoch_total_val_loss += total_loss.item()
 
-                epoch_loss += total_loss.item()
-                epoch_acc += self.calc_accuracy(classifications.logits, labels)
-            epoch_acc = epoch_acc / len(self.train_dl)
+            epoch_fmg_val_loss = epoch_fmg_val_loss / len(self.test_dl)
+            epoch_cn_val_loss = epoch_cn_val_loss / len(self.test_dl)
+            epoch_total_val_loss = epoch_total_val_loss / len(self.test_dl)
+            epoch_val_acc = epoch_val_acc / len(self.test_dl)
 
-            epoch_fmg_loss = epoch_fmg_loss / len(self.train_dl)
-            epoch_cn_loss = epoch_cn_loss / len(self.train_dl)
-
-            epoch_loss = epoch_loss / len(self.train_dl)
-        return epoch_loss, epoch_acc, epoch_fmg_loss, epoch_cn_loss
+        return epoch_total_val_loss, epoch_val_acc, epoch_fmg_val_loss, epoch_cn_val_loss
 
     def calc_accuracy(self, predictions, labels):
         # print("Predictions: \n", predictions)
@@ -302,6 +417,7 @@ class FmpnAgent(Agent):
         return torch.mean((classes == labels).float())
 
     def test(self):
+        print("testing...")
         self.fmg.eval()
         self.pfn.eval()
         self.cn.eval()
@@ -314,83 +430,88 @@ class FmpnAgent(Agent):
         #  for confusion matrix
         all_predictions = torch.tensor([]).to(self.device)
         all_labels = torch.tensor([]).to(self.device)
-        cnfmat = torch.zeros(7, 7, dtype=torch.int32)
 
-        with tqdm(self.test_dl, desc="Batch", unit="batches") as tbatch:
-            with torch.no_grad():
-                for i, batch in enumerate(tbatch):  #
-                    images = batch["image"].to(self.device)
-                    images_gray = batch["image_gray"].to(self.device)
-                    label_masks = batch["mask"].to(self.device)
-                    labels = batch["label"].to(self.device)
+        with torch.no_grad():
+            for i, batch in enumerate(self.test_dl):  #
+                images = batch["image"].to(self.device)
+                images_gray = batch["image_gray"].to(self.device)
+                label_masks = batch["mask"].to(self.device)
+                labels = batch["label"].to(self.device)
 
-                    predicted_masks = self.fmg(images_gray).to(self.device)
-                    heat_face = images_gray * predicted_masks
-                    heat_face.to(self.device)
-                    fusion_img = self.pfn(images, heat_face)
-                    classifications = self.cn(fusion_img)
-                    # print("classifications: ", classifications)
-                    # print("classification shape:", np.shape(classifications))
-                    classification_prob = torch.softmax(classifications, dim=0)
-                    # print("class after softmax: ", classification_prob)
-                    classifications = classification_prob
+                predicted_masks = self.fmg(images_gray).to(self.device)
+                heat_face = images_gray * predicted_masks
+                heat_face.to(self.device)
+                fusion_img = self.pfn(images, heat_face)
+                classifications = self.cn(fusion_img)
+                # print("classifications: ", classifications)
+                # print("classification shape:", np.shape(classifications))
+                classification_prob = torch.softmax(classifications, dim=-1)
+                # print("class after softmax: ", classification_prob)
+                classifications = classification_prob
 
-                    fmg_loss = self.loss_fmg_fn(predicted_masks, label_masks)
+                fmg_loss = self.loss_fmg_fn(predicted_masks, label_masks)
 
-                    # classifications_argmax = torch.argmax(classifications)
-                    # print("classes: ", classifications)
-                    cn_loss = self.loss_cn_fn(classifications, labels)
+                # classifications_argmax = torch.argmax(classifications)
+                # print("classes: ", classifications)
+                cn_loss = self.loss_cn_fn(classifications, labels)
 
-                    epoch_fmg_val_loss += fmg_loss.item()
-                    epoch_cn_val_loss += cn_loss.item()
+                epoch_fmg_val_loss += fmg_loss.item()
+                epoch_cn_val_loss += cn_loss.item()
 
-                    total_loss = self.loss_total_fn(fmg_loss, cn_loss)
+                total_loss = self.loss_total_fn(fmg_loss, cn_loss)
 
-                    epoch_total_val_loss += total_loss.item()
+                epoch_total_val_loss += total_loss.item()
 
-                    # pass classifications to all_predictions tensor
-                    all_predictions = torch.cat((all_predictions, torch.argmax(classifications, dim=-1)))
-                    all_labels = torch.cat((all_labels, labels))
+                # pass classifications to all_predictions tensor
+                # all_predictions = torch.cat((all_predictions, torch.argmax(classifications, dim=-1)))
+                all_predictions = torch.cat((all_predictions, torch.argmax(classifications, dim=-1)))
+                all_labels = torch.cat((all_labels, labels))
 
-                    batch_val_acc = self.calc_accuracy(classifications, labels)
-                    epoch_val_acc += batch_val_acc
+                batch_val_acc = self.calc_accuracy(classifications, labels)
+                epoch_val_acc += batch_val_acc
 
-                    tbatch.set_postfix(val_loss="{:.3f}".format(total_loss, prec='.3'),
-                                       val_accuracy="{:.3f}".format(batch_val_acc, prec='.3'))
+                # tbatch.set_postfix(val_loss="{:.3f}".format(total_loss, prec='.3'),
+                #                    val_accuracy="{:.3f}".format(batch_val_acc, prec='.3'))
 
-                epoch_total_val_loss = epoch_total_val_loss / len(self.test_dl)
-                epoch_val_acc = epoch_val_acc / len(self.test_dl)
-                # print("val_acc: ", epoch_val_acc)
+            epoch_total_val_loss = epoch_total_val_loss / len(self.test_dl)
+            epoch_val_acc = epoch_val_acc / len(self.test_dl)
+            # print("val_acc: ", epoch_val_acc)
+            # print("val_loss: {0} \t val_accuracy: {1}".format(epoch_total_val_loss, epoch_val_acc))
 
-                print("val_loss: {0} \t val_accuracy: {1}".format(epoch_total_val_loss, epoch_val_acc))
+            make_cnfmat_plot(labels=all_labels,
+                             predictions=all_predictions,
+                             n_classes=self.args.n_classes,
+                             path=self.test_plots,
+                             gpu_device=self.args.gpu_id)
+            return epoch_total_val_loss, epoch_val_acc
+
 
                 # creating confusion matrix now
-                print(all_predictions)
-                print(all_labels)
-                print("allpred: ", np.shape(all_predictions))
-                print("allpred: ", np.shape(all_labels))
-                stacked_pred_label = torch.stack((all_labels, all_predictions), dim=1)
-                print(stacked_pred_label.shape)
-                print(stacked_pred_label)
-                for pair in stacked_pred_label:
-                    label, pred = pair.tolist()
-                    cnfmat[int(label), int(pred)] = cnfmat[int(label), int(pred)] + 1
+                #   print(all_predictions)
+                #   print(all_labels)
+                #   print("allpred: ", np.shape(all_predictions))
+                #   print("allpred: ", np.shape(all_labels))
+                #   stacked_pred_label = torch.stack((all_labels, all_predictions), dim=1)
+                #   print(stacked_pred_label.shape)
+                #   print(stacked_pred_label)
+                #   for pair in stacked_pred_label:
+                #       label, pred = pair.tolist()
+                #       cnfmat[int(label), int(pred)] = cnfmat[int(label), int(pred)] + 1
 
-                print(cnfmat)
+                #   print(cnfmat)
                 # save confusion matrix to file
-                path = "./results/run_fmpn_2021-04-16_00-40-16/train_fmpn_2021-04-16_00-40-16\plots/"
-                np.savetxt(path+"cnfmat.txt", cnfmat.numpy())
+                # path = "./results/run_fmpn_2021-04-16_00-40-16/train_fmpn_2021-04-16_00-40-16\plots/"
+                #   path = "./results/run_fmpn_2021-04-19_19-10-27/train_fmpn_2021-04-19_19-10-27\plots/"
+                #   np.savetxt(path + "cnfmat.txt", cnfmat.numpy())
+                #   cnfmat = cnfmat.detach().cpu().numpy()
+                #   cnfmatnorm = cnfmat.astype('float') / cnfmat.sum(axis=1)[:, np.newaxis]
+                #   cnfmat_df = pd.DataFrame(cnfmatnorm,
+                #                            index=["anger", "contempt", "disgust", "fear", "happy", "sadness", "surprise"],
+                #                            columns=["anger", "contempt", "disgust", "fear", "happy", "sadness",
+                #                                     "surprise"])
 
-                cnfmat_df = pd.DataFrame(cnfmat.detach().cpu().numpy(),
-                                         index=["anger", "contempt", "disgust", "fear", "happy", "sadness", "surprise"],
-                                         columns=["anger", "contempt", "disgust", "fear", "happy", "sadness", "surprise"])
-
-                cnfmat_df2 = pd.DataFrame(cnfmat.detach().cpu().numpy(),
-                                         columns=["anger", "contempt", "disgust", "fear", "happy", "sadness", "surprise"])
-
-
-                ax = sn.heatmap(cnfmat_df, annot=True, annot_kws={"size": 10}, fmt='d')
-                plt.title('Confusion matrix of FMPN predictions on the CK+ dataset', fontsize=12)
-                plt.yticks(rotation=0)
-                plt.savefig(path+"cnfmat_plot.png")
-                plt.show()
+                #   ax = sn.heatmap(cnfmat_df, annot=True, annot_kws={"size": 10}, fmt='.0%', cmap='Blues')
+                #   plt.title('Confusion matrix of FMPN predictions on the CK+ dataset', fontsize=12)
+                #   plt.yticks(rotation=0)
+                #   plt.savefig(path + "cnfmat_plot.png")
+                #   plt.show()

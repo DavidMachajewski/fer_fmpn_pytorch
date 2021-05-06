@@ -1,25 +1,22 @@
-# from args import Setup
+"""
+####################################################################################################
+train Inception_v3 network on ck+
+training is done in 10 split so change trainsplit
+and testsplit accordingly: train_ids_x.csv, test_ids_x.csv
+####################################################################################################
+python main.py --mode train --gpu_id 0 --model_to_train incv3 --epochs 200 --pretrained False
+--dataset ckp --batch_size 8 --lr_gen 0.001 --trainsplit train_ids_2.csv --testsplit test_ids_2.csv
+
+to run multiple times with other values you can run following bash command:
+for %i in (3,4,5) do python main.py --mode train --gpu_id 0 --model_to_train incv3 --epochs 200 --pretrained False --dataset ckp --batch_size 8 --lr_gen 0.001 --trainsplit train_ids_%i.csv --testsplit test_ids_%i.csv
+####################################################################################################
+"""
 from args2 import Setup
-
-import tqdm
-from tqdm import tqdm
-import os
-from lib.dataloader.datasets import CKP, RandomCrop, ToTensor, GrayScale
-import matplotlib.pyplot as plt
-import numpy as np
-from torch.utils.data import DataLoader
-from torchvision import transforms, utils
-import torchvision
-# from lib.models.models import BuildingBlock, ResNet18, FMPN
-
-from torchviz import make_dot
-from torch.nn import Sequential
 from torch import nn
-from torchsummary import summary
 import torch.optim as optim
 import torch as to
-from lib.dataloader.datasets import get_ckp
 
+"""
 def resnet_train(model, dataloader):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
@@ -52,7 +49,9 @@ def resnet_train(model, dataloader):
                 print('[%d, %5d] loss: %.3f' %
                       (epoch + 1, i + 1, running_loss / 2))
                 running_loss = 0.0
+"""
 
+"""
 def fmg_train(model, dataloader):
     criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
@@ -84,8 +83,9 @@ def fmg_train(model, dataloader):
                 print('[%d, %5d] loss: %.3f' %
                       (epoch + 1, i + 1, running_loss / 2))
                 running_loss = 0.0
+"""
 
-
+"""
 def run_fmg_agent():
     args = Setup().parse()
     args.epochs = 300
@@ -98,6 +98,7 @@ def run_fmg_agent():
     fmgagent = FmgAgent(args)
     # fmgagent.run()
     fmgagent.test("./results/run_fmg_2021-04-14_13-57-45/test_fmg_2021-04-14_13-57-45\plots/")
+"""
 
 
 def run_fmpn_agent():
@@ -107,113 +108,74 @@ def run_fmpn_agent():
     args.batch_size = 8
 
     # first training
-    # args.load_ckpt_fmg_only = True
-    # args.ckpt_fmg = "./results/run_fmg_2021-04-14_13-57-45/train_fmg_2021-04-14_13-57-45\ckpt/fmg_ckpt.pth.tar"
+    args.load_ckpt_fmg_only = 1
+    args.ckpt_fmg = "./results/run_fmg_2021-04-14_13-57-45/train_fmg_2021-04-14_13-57-45\ckpt/fmg_ckpt.pth.tar"
 
-    args.load_ckpt = True
+    # for resuming training
+    # args.load_ckpt = 1
 
     # args.ckpt_fmg = "./results/run_fmpn_2021-04-15_17-52-38/train_fmpn_2021-04-15_17-52-38\ckpt/fmpn_fmg_ckpt.pth.tar"
     # args.ckpt_pfn = "./results/run_fmpn_2021-04-15_17-52-38/train_fmpn_2021-04-15_17-52-38\ckpt/fmpn_pfn_ckpt.pth.tar"
     # args.ckpt_cn = "./results/run_fmpn_2021-04-15_17-52-38/train_fmpn_2021-04-15_17-52-38\ckpt/fmpn_cn_ckpt.pth.tar"
 
     # for testing ----
-    args.ckpt_fmg = "./results/run_fmpn_2021-04-16_00-40-16/train_fmpn_2021-04-16_00-40-16/fmpn_fmg_ckpt.pth.tar"
-    args.ckpt_pfn = "./results/run_fmpn_2021-04-16_00-40-16/train_fmpn_2021-04-16_00-40-16/fmpn_pfn_ckpt.pth.tar"
-    args.ckpt_cn = "./results/run_fmpn_2021-04-16_00-40-16/train_fmpn_2021-04-16_00-40-16/fmpn_cn_ckpt.pth.tar"
+    # args.ckpt_fmg = "./results/run_fmpn_2021-04-16_00-40-16/train_fmpn_2021-04-16_00-40-16/fmpn_fmg_ckpt.pth.tar"
+    # args.ckpt_pfn = "./results/run_fmpn_2021-04-16_00-40-16/train_fmpn_2021-04-16_00-40-16/fmpn_pfn_ckpt.pth.tar"
+    # args.ckpt_cn = "./results/run_fmpn_2021-04-16_00-40-16/train_fmpn_2021-04-16_00-40-16/fmpn_cn_ckpt.pth.tar"
+
+    # for testing ----
+    args.ckpt_fmg = "./results/run_fmpn_2021-04-19_19-10-27/train_fmpn_2021-04-19_19-10-27\ckpt/fmpn_fmg_2021-04-19_19-10-27_epoch_499_ckpt.pth.tar"
+    args.ckpt_pfn = "./results/run_fmpn_2021-04-19_19-10-27/train_fmpn_2021-04-19_19-10-27\ckpt/fmpn_pfn_2021-04-19_19-10-27_epoch_499_ckpt.pth.tar"
+    args.ckpt_cn = "./results/run_fmpn_2021-04-19_19-10-27/train_fmpn_2021-04-19_19-10-27\ckpt/fmpn_cn_2021-04-19_19-10-27_epoch_499_ckpt.pth.tar"
 
     fmpn_agent = FmpnAgent(args)
     # fmpn_agent.run()
     fmpn_agent.test()
 
 
-from lib.utils import imshow_tensor
-# from lib.models.models import RunFMPN
-from lib.models.models2 import train_inceptionv3
-from lib.agents.fmg_agent import FmgAgent
-from lib.agents.fmpn_agent import FmpnAgent
-import pickle
+"""
+def run_inc_agent():
+    args = Setup().parse()
+    args.model_to_train = "incv3"
+    args.epochs = 200
+    args.batch_size = 1
+
+    args.load_ckpt = True
+    args.ckpt_to_load = "./results/run_incv3_2021-04-21_19-29-37/train_incv3_2021-04-21_19-29-37\ckpt\incv3_epoch_199_ckpt.pth.tar"
+
+    agent = InceptionAgent(args)
+    # agent.run()
+    res = agent.test()
+    print(res)
+"""
+
+
+from lib.agents.runner import Runner
+
+
 
 if __name__ == '__main__':
+    args = Setup().parse()
 
-    # model = torchvision.models.inception_v3(pretrained=True, num_classes=7)
+    runner = Runner(args)
 
-    run_fmpn_agent()
-
-    fil_to_read = open("./results/run_fmpn_2021-04-16_00-40-16/train_fmpn_2021-04-16_00-40-16\end_train_logs.pickle","rb")
-    loaded_dict = pickle.load(fil_to_read)
-    keys = list(loaded_dict.keys())
-    print(loaded_dict)
-    print(keys)
-
-    # losses
+    runner.start()
     """
-    plt.plot(loaded_dict['train_loss'])
-    plt.plot(loaded_dict['train_loss_fmg'])
-    plt.plot(loaded_dict['train_loss_cn'])
-    plt.title('training loss per epoch')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend(['train_loss_total', 'train_loss_fmg', 'train_loss_cn'], loc='upper left')
-    plt.show()
-    """
-    """
-    # train acc
-    lot = loaded_dict['train_acc']
-    accs = []
-    for tensor in lot:
-        accs.append(tensor.cpu().item())
-    print(accs)
-    print(type(loaded_dict['train_acc']))
-    plt.plot(accs)
-    plt.title('training accuracy per epoch')
-    plt.ylabel('accuracy')
-    plt.xlabel('epoch')
-    plt.legend(['training accuracy'], loc='lower right')
-    plt.show()
-    """
-
-    # learning rates
-    """
-    plt.plot(loaded_dict['lr_fmg'])
-    plt.plot(loaded_dict['lr_pfn'])
-    plt.plot(loaded_dict['lr_cn'])
-    plt.title('lr per epoch')
-    plt.ylabel('lr')
-    plt.xlabel('epoch')
-    plt.legend(['lr_fmg', 'lr_pfn=lr_cn', 'lr_cn'], loc='upper left')
-    plt.show()
-    """
-
+for %i in (0) do python main.py --mode train --gpu_id 0 --model_to_train densenet --epochs 200 --save_ckpt_intv 50 --load_size 245 --final_size 224 --pretrained 0 --dataset ckp --batch_size 8 --lr_gen 0.001 --trainsplit train_ids_%i.csv --testsplit test_ids_%i.csv
 """
-    train, test = get_ckp(args, batch_size=16)
 
-    model = FMPN(args)
-    model.setup()
-    epochs_total = 1
-    lr_per_epoch = []
-    loss_fmg_per_epoch = []
-    loss_cn_per_epoch = []
-    for epoch in range(epochs_total):
-        for i, batch in enumerate(tqdm(train)):
-            model.feed(batch)
-            model.optimizer_step()
-            tmp_loss = model.get_latest_losses()
-            print("loss: ", tmp_loss)
-            cur_lr = model.update_learning_rate()
-            info_dict = {
-                'epoch': epoch,
-                'epochs_total': epochs_total,
-                'cur_lr': cur_lr,
-                'losses': tmp_loss
-            }
-            # print(info_dict)
-            loss_fmg_per_epoch.append(tmp_loss['fmg'])
-            loss_cn_per_epoch.append(tmp_loss['cn'])
-            lr_per_epoch.append(cur_lr)
-            model.save(epoch)
-            print(loss_fmg_per_epoch)
-            print(loss_cn_per_epoch)
-            print(lr_per_epoch)
-            break
 
-"""
+    # train_dl, test_dl = get_ckp(args)
+    #
+    # :TODO: MAKE UTILS FUNCTION
+    #    PLOT BARPLOT OF TRAIN AND TEST DATA
+    #
+
+    # classes = [0, 0, 0, 0, 0, 0, 0]
+    # for i, batch in enumerate(test_dl):
+    #     labels = batch['label']
+    #     for label in labels:
+    #         classes[int(label)] += 1
+    # print(classes)
+    # plt.bar([0, 1, 2, 3, 4, 5, 6], classes)
+    # plt.show()

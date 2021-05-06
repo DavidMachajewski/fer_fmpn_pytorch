@@ -13,8 +13,8 @@ class Agent:
         self.tmp_epoch = 0  # saving writes tmp_epoch to state dict
 
         self.list_train_loss = []
-        self.list_test_loss = []
         self.list_train_acc = []
+        self.list_test_loss = []
         self.list_test_acc = []
         self.list_lr = []
 
@@ -78,6 +78,4 @@ class Agent:
 
         os.makedirs(self.test_path)
         os.makedirs(self.test_plots)
-
-
 

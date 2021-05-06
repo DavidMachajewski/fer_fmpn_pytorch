@@ -12,6 +12,7 @@ import torchvision.transforms as transforms
 class DatasetBase(Dataset):
     def __init__(self, args, train: bool):
         self.args = args
+        self.train = train
         super(DatasetBase, self).__init__()
         self.data_root = self.args.data_root
         self.masks_path = self.args.masks
@@ -29,7 +30,10 @@ class DatasetBase(Dataset):
 
     def __load_image__(self, path):
         img = cv.imread(path)
-        img = cv.resize(img, (self.args.load_size, self.args.load_size))
+        if self.train:
+            img = cv.resize(img, (self.args.load_size, self.args.load_size))
+        else:
+            img = cv.resize(img, (self.args.final_size, self.args.final_size))
         if img.shape[2] == 1:
             img = cv.cvtColor(img, cv.CV_GRAY2RGB)
         img = cv.normalize(img, None, alpha=0, beta=1, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
@@ -37,8 +41,13 @@ class DatasetBase(Dataset):
 
     def __load_mask__(self, label):
         """Loading the facial mask corresponding to the label"""
-        get_id = lambda id_name: self.splitname[10]
+        if self.train:
+            idx = 10
+        else:
+            idx = 9
+        get_id = lambda id_name: self.splitname[idx]
         path_to_masks = self.args.masks
+
         mask_sub_folder = "train_{}".format(get_id(self.splitname))
         mask_file_name = "mask_{}.png".format(label + 1)  # + 1 because of names id are label+1
 
@@ -64,7 +73,8 @@ class CKP(DatasetBase):
         self.images_path = args.ckp_images
         self.path_csv = os.path.join(args.ckp_csvsplits, self.splitname)
 
-        self.img_names = pd.read_csv(self.path_csv, index_col=False).values.tolist()
+        self.img_names = pd.read_csv(self.path_csv, index_col=False, header=None).values.tolist()
+        # print("image names: ", self.img_names)
         self.img_names = [img_name[0] for img_name in self.img_names]
         self.img_paths, self.img_labels = self.__get_paths_and_labels__()
 
@@ -101,7 +111,9 @@ class CKP(DatasetBase):
         sample = {'image': img,
                   'image_gray': img_gray,
                   'label': label,
-                  'mask': mask}
+                  'mask': mask,
+                  'path': img_path}
+        # for debugging you can add image path to the dict
 
         if self.transform:
             sample = self.transform(sample)
@@ -111,9 +123,19 @@ class CKP(DatasetBase):
 def get_ckp(args, batch_size=8, shuffle=True, num_workers=2):
     """Initialize ckp dataset and return train, test
     torch.utils.data.dataloader.DataLoader, already batched and shuffled."""
-    transforms = tv.transforms.Compose([RandomCrop(args), ToTensor(), RandomFlip(), Normalization()])
+    #
+    #
+    # for loading the dataset set conditions for processing
+    #
+    #   RandomCrop: True, False
+    #   RandomFlip: True, False
+    #   Normalization: True, False
+    #
+    #
+    transforms = tv.transforms.Compose([RandomCrop(args), ToTensor(), RandomFlip(), Normalization(args)])
+    transforms_test = tv.transforms.Compose([ToTensor(), Normalization(args)])
     train_ds = CKP(train=True, args=args, transform=transforms)
-    test_ds = CKP(train=True, args=args, transform=transforms)
+    test_ds = CKP(train=False, args=args, transform=transforms_test)
 
     train_loader = DataLoader(dataset=train_ds,
                               batch_size=batch_size,
@@ -135,6 +157,9 @@ def get_ckp(args, batch_size=8, shuffle=True, num_workers=2):
 # #################################################################
 
 class Normalization(object):
+    def __init__(self, args):
+        self.args = args
+
     def __call__(self, sample):
         image = sample['image']
         image = image.float()
@@ -142,7 +167,15 @@ class Normalization(object):
         mask = sample['mask']
         label = sample['label']
 
-        image = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(image)
+        # This normalization applies to pytorch inceptionnet, resnet, densenet
+        #
+        # But this kind of normalization destroys some features within faces
+        # or increases the value and occupancy of shadows!
+        # :TODO: OUTCOMMENT THIS LINE AND CHECK ACCS WHILE TRAINING +
+        #   ADD CONDITION IF YOU WANT TO NORMALIZE THIS
+        #
+        if self.args.norm_orig_img:
+            image = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(image)
 
         return {'image': image,
                 'image_gray': image_gray,
