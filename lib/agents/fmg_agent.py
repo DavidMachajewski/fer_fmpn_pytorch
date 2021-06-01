@@ -209,7 +209,7 @@ class FmgAgent(Agent):
             labels = batch["label"]
             #
             #
-            #
+            # :TODO: Create some images for test set as well to compare train and test
             #
             predicted_masks = self.fmg(images_gray).to(self.device)
             save_tensor_img(img=images_gray[0].cpu().detach(),

@@ -185,7 +185,7 @@ def make_cnfmat_plot(labels, predictions, n_classes, path, gpu_device, title="")
 
 
 def prec_recall_fscore(y_true, y_pred):
-    return  metrics.precision_recall_fscore_support(y_true=y_true, y_pred=y_pred)
+    return metrics.precision_recall_fscore_support(y_true=y_true, y_pred=y_pred)
 
 
 def roc_auc_score(y_true, y_pred, n_classes):

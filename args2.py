@@ -47,6 +47,12 @@ class Setup(object):
         parser.add_argument('--data_root', type=str, default="./datasets/", help="path to dataset folder")
         parser.add_argument('--ckp_images', type=str, default="./datasets/ckp/images_cropped/", help="path to ""cropped ckp images")
         parser.add_argument('--ckp_csvsplits', type=str, default="./datasets/ckp/tensplit/", help="path to ckp splits")
+        parser.add_argument('--fer_images', type=str, default="./datasets/fer/fer2013.csv", help="path to fer dataset file")
+
+        parser.add_argument('--affectnet_manual', type=str, default="./datasets/affectnet/training.csv")
+        parser.add_argument('--affectnet', type=str, default="./datasets/affectnet/")
+        parser.add_argument('--fer_csvsplits', type=str, default="./datasets/ckp/tensplit/", help="path to ckp splits")
+
         parser.add_argument('--masks', type=str, default="./datasets/masks/", help="path to masks folder")
         parser.add_argument('--labels', type=str, default="./datasets/masks/emotion_labels.pkl")
 
@@ -77,6 +83,9 @@ class Setup(object):
         # result folder
         parser.add_argument('--result_folder', type=str, default='./results/', help="")
 
+        # deep dream model params
+        parser.add_argument('--deepdream_model', type=str, default="incv3", help="")
+        # parser.add_argument('--trained', type=bool, default=1, help="boolean for already trained (or not trained) FER networks")
         # evaluation
         #
         # add arguments for evaluation data dicts here

@@ -5,15 +5,17 @@ from tqdm import trange, tqdm
 from lib.utils import save_tensor_img
 from lib.agents.agent import Agent
 from lib.dataloader.datasets import get_ckp
-from lib.eval.eval_utils import make_cnfmat_plot
+from lib.eval.eval_utils import make_cnfmat_plot, prec_recall_fscore, roc_auc_score
 from lib.models.models import FacialMaskGenerator, PriorFusionNetwork, inceptionv3
 
 #################
 # RUN WITH PRETRAINED InceptionNet as classification network
-# >> for %i in (0) do python main.py --mode train --gpu_id 0 --model_to_train fmpn --epochs 500 --save_ckpt_intv 50 --load_size 320 --final_size 299 --load_ckpt_fmg_only 1 --fmpn_cn inc_v3 --fmpn_cn_pretrained 1 --
-# dataset ckp --batch_size 8 --scheduler_type linear_x --ckpt_fmg ./results/run_fmg_2021-04-14_13-57-45/train_fmg_2021-04-14_13-57-45\ckpt/fmg_ckpt.pth.tar --trainsplit train_ids_%i.csv --testsplit test_ids_%i.csv
+# >> for %i in (0) do python main.py --mode train --gpu_id 0 --model_to_train fmpn --epochs 500 --save_ckpt_intv 50 --load_size 320 --final_size 299 --load_ckpt_fmg_only 1 --fmpn_cn inc_v3 --fmpn_cn_pretrained 1 --dataset ckp --batch_size 8 --scheduler_type linear_x --ckpt_fmg ./results/run_fmg_2021-04-14_13-57-45/train_fmg_2021-04-14_13-57-45\ckpt/fmg_ckpt.pth.tar --trainsplit train_ids_%i.csv --testsplit test_ids_%i.csv
 #
-#
+# for %i in (0) do python main.py --mode train --gpu_id 0 --model_to_train fmpn --epochs 500 --save_ckpt_intv 50 --load_size 320 --final_size 299 --load_ckpt_fmg_only 1 --fmpn_cn
+# inc_v3 --fmpn_cn_pretrained 1 --dataset ckp --batch_size 8 --scheduler_type linear_x --ckpt_fmg ./results/run_fmg_2021-04-14_13-57-45/train_fmg_2021-04-14_13-57-45\ckpt/fmg_ckpt.pth.tar --trainsplit train_ids_%i.csv --testsplit test_i
+# ds_%i.csv
+
 #################
 
 class FmpnAgent(Agent):
@@ -158,6 +160,7 @@ class FmpnAgent(Agent):
             self.fmg.load_state_dict(fmg_ckpt['model_state_dict'])
             self.opt.load_state_dict(fmg_ckpt['model_optimizer'])
             self.opt.param_groups[0]['lr'] = self.args.lr_init_after
+            print("Loaded ckpt of pretrained fmg.")
         except OSError as e:
             print("Could not load ckpt.")
 
@@ -305,23 +308,37 @@ class FmpnAgent(Agent):
             self.opt.zero_grad()
 
             predicted_masks = self.fmg(images_gray).to(self.device)
-            heat_face = images_gray * predicted_masks
+            heat_face = images_gray * predicted_masks  # multiplied img
 
             heat_face.to(self.device)
-            fusion_img = self.pfn(images, heat_face)
+            fusion_img, imgorg_after_pfn_prep, imgheat_after_pfn_prep = self.pfn(images, heat_face)
 
 
             # save images
-            if self.tmp_epoch == 299 or self.tmp_epoch % 50 == 0:
+            if self.tmp_epoch == 299 or self.tmp_epoch % 100 == 0:
                 for idx in range(len(predicted_masks)):
+                    save_tensor_img(img=images[idx].cpu().detach(),
+                                    path=self.train_plots + "imgorg_"
+                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(self.tmp_epoch) + "_batch_" + str(i) + ".png")
+
                     save_tensor_img(img=predicted_masks[idx].cpu().detach(),
                                     path=self.train_plots + "pred_mask_"
                                          + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(self.tmp_epoch) + "_batch_" + str(i) + ".png")
+
                     save_tensor_img(img=images_gray[idx].cpu().detach(),
                                     path=self.train_plots + "gray_img_"
                                          + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(self.tmp_epoch) + "_batch_" + str(i) + ".png")
+
                     save_tensor_img(img=heat_face[idx].cpu().detach(),
                                     path=self.train_plots + "multiplied_img_"
+                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(self.tmp_epoch) + "_batch_" + str(i) + ".png")
+
+                    save_tensor_img(img=imgorg_after_pfn_prep[idx].cpu().detach(),
+                                    path=self.train_plots + "imgorg_pfn_prep_"
+                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(self.tmp_epoch) + "_batch_" + str(i) + ".png")
+
+                    save_tensor_img(img=imgheat_after_pfn_prep[idx].cpu().detach(),
+                                    path=self.train_plots + "multiplied_pfn_prep_"
                                          + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(self.tmp_epoch) + "_batch_" + str(i) + ".png")
 
                     save_tensor_img(img=fusion_img[idx].cpu().detach(),
@@ -376,7 +393,7 @@ class FmpnAgent(Agent):
                 predicted_masks = self.fmg(images_gray).to(self.device)
                 heat_face = images_gray * predicted_masks
                 heat_face.to(self.device)
-                fusion_img = self.pfn(images, heat_face)
+                fusion_img, _, __ = self.pfn(images, heat_face)
                 classifications = self.cn(fusion_img)
                 # print("classifications: ", classifications)
                 # print("classification shape:", np.shape(classifications))
@@ -441,7 +458,7 @@ class FmpnAgent(Agent):
                 predicted_masks = self.fmg(images_gray).to(self.device)
                 heat_face = images_gray * predicted_masks
                 heat_face.to(self.device)
-                fusion_img = self.pfn(images, heat_face)
+                fusion_img, a, b = self.pfn(images, heat_face)
                 classifications = self.cn(fusion_img)
                 # print("classifications: ", classifications)
                 # print("classification shape:", np.shape(classifications))
@@ -483,6 +500,26 @@ class FmpnAgent(Agent):
                              n_classes=self.args.n_classes,
                              path=self.test_plots,
                              gpu_device=self.args.gpu_id)
+            #
+            #
+            # :TODO: calculate metrics here
+            #
+            #
+            # calculate precision recall fscore
+            clf_report = prec_recall_fscore(y_true=all_labels.cpu(), y_pred=all_predictions.cpu())
+            roc_score = roc_auc_score(y_true=all_labels.cpu(), y_pred=all_predictions.cpu(), n_classes=self.args.n_classes)
+            # out_df.to_csv(self.test_plots + "clf_report.csv", index=False)
+            out_dict = {
+                "precision": clf_report[0].round(2).tolist(),
+                "recall": clf_report[1].round(2).tolist(),
+                "f1": clf_report[2].round(2).tolist(),
+                "support": clf_report[3].tolist(),
+                "roc_auc_ovr": roc_score.tolist()
+            }
+            with open(self.test_plots + "clf_report.txt", "w") as f:
+                print(out_dict, file=f)
+            print(out_dict)
+            print(roc_score)
             return epoch_total_val_loss, epoch_val_acc
 
 

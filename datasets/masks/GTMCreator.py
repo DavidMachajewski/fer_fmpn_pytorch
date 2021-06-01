@@ -545,6 +545,14 @@ def run():
 
 run()
 
+# #####################################################################
+# 0. Create a 10 fold train test split and save to "../ckp/tensplit/"
+# 1. Once create all masks with current dataset split
+# 2. Pretrain the facial mask generator for each train_id/test_id
+# 3. Train the whole FMPN on train_id
+#    a. Load the corresponding FMG trained on train_id
+# ######################################################################
+
 """
 splitname0 = "../ckp/tensplit/train_ids_0.csv"
 splitname1 = "../ckp/tensplit/train_ids_1.csv"

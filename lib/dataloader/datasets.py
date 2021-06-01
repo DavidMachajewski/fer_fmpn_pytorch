@@ -35,6 +35,7 @@ class DatasetBase(Dataset):
         else:
             img = cv.resize(img, (self.args.final_size, self.args.final_size))
         if img.shape[2] == 1:
+            # to get 3 channel image
             img = cv.cvtColor(img, cv.CV_GRAY2RGB)
         img = cv.normalize(img, None, alpha=0, beta=1, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
         return img
@@ -112,7 +113,7 @@ class CKP(DatasetBase):
                   'image_gray': img_gray,
                   'label': label,
                   'mask': mask,
-                  'path': img_path}
+                  'img_path': img_path}
         # for debugging you can add image path to the dict
 
         if self.transform:
@@ -120,7 +121,29 @@ class CKP(DatasetBase):
         return sample
 
 
-def get_ckp(args, batch_size=8, shuffle=True, num_workers=2):
+class FER2013(DatasetBase):
+    def __init__(self):
+        pass
+
+    def __len__(self):
+        pass
+
+    def __getitem__(self, item):
+        pass
+
+
+class AffectNet(DatasetBase):
+    def __init__(self, args):
+        self.args = args
+
+    def __len__(self):
+        pass
+
+    def __getitem__(self, item):
+        pass
+
+
+def get_ckp(args, batch_size=8, shuffle=True, num_workers=2, drop_last=False):
     """Initialize ckp dataset and return train, test
     torch.utils.data.dataloader.DataLoader, already batched and shuffled."""
     #
@@ -140,7 +163,8 @@ def get_ckp(args, batch_size=8, shuffle=True, num_workers=2):
     train_loader = DataLoader(dataset=train_ds,
                               batch_size=batch_size,
                               shuffle=shuffle,
-                              num_workers=num_workers)
+                              num_workers=num_workers,
+                              drop_last=drop_last)
 
     test_loader = DataLoader(dataset=test_ds,
                              batch_size=batch_size,
@@ -166,6 +190,7 @@ class Normalization(object):
         image_gray = sample['image_gray']
         mask = sample['mask']
         label = sample['label']
+        path = sample['img_path']
 
         # This normalization applies to pytorch inceptionnet, resnet, densenet
         #
@@ -180,7 +205,8 @@ class Normalization(object):
         return {'image': image,
                 'image_gray': image_gray,
                 'label': label,
-                'mask': mask}
+                'mask': mask,
+                'img_path': path}
 
 
 class RandomCrop(object):
@@ -194,6 +220,7 @@ class RandomCrop(object):
         image_gray = sample['image_gray']
         mask = sample['mask']
         label = sample['label']
+        path = sample["img_path"]
 
         h, w = image.shape[:2]
         new_h, new_w = self.args.final_size, self.args.final_size
@@ -206,7 +233,8 @@ class RandomCrop(object):
         return {'image': image,
                 'image_gray': image_gray,
                 'label': label,
-                'mask': mask}
+                'mask': mask,
+                'img_path': path}
 
 
 class RandomFlip(object):
@@ -218,6 +246,7 @@ class RandomFlip(object):
         label = sample['label']
         image_gray = sample['image_gray']
         mask = sample['mask']
+        path = sample["img_path"]
 
         image = tv.transforms.RandomHorizontalFlip(p=0.5)(image)
         image_gray = tv.transforms.RandomHorizontalFlip(p=0.5)(image_gray)
@@ -225,7 +254,8 @@ class RandomFlip(object):
         return {'image': image,
                 'image_gray': image_gray,
                 'label': label,
-                'mask': mask}
+                'mask': mask,
+                'img_path': path}
 
 
 class GrayScale(object):
@@ -234,6 +264,7 @@ class GrayScale(object):
     def __call__(self, sample):
         image = sample['image']
         image = tv.transforms.Grayscale(num_output_channels=1)(image)
+        path = sample["img_path"]
 
         label = sample['label']
         image_gray = sample['image_gray']
@@ -241,7 +272,8 @@ class GrayScale(object):
         sample = {'image': image,
                   'image_gray': image_gray,
                   'label': label,
-                  'mask': mask}
+                  'mask': mask,
+                  'img_path': path}
         return sample
 
 
@@ -251,6 +283,7 @@ class ToTensor(object):
     def __call__(self, sample):
         image = sample['image']
         image_gray = sample['image_gray']
+        path = sample["img_path"]
 
         # swap color axis because
         # numpy image: H x W x C
@@ -263,7 +296,8 @@ class ToTensor(object):
         return {'image': to.from_numpy(image),
                 'image_gray': to.from_numpy(image_gray),
                 'label': to.tensor(label),
-                'mask': to.from_numpy(mask)}
+                'mask': to.from_numpy(mask),
+                'img_path': path}
 
 
 norm = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])

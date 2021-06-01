@@ -16,6 +16,8 @@ from torch import nn
 import torch.optim as optim
 import torch as to
 
+from lib.agents.fmg_agent import FmgAgent
+
 """
 def resnet_train(model, dataloader):
     criterion = nn.CrossEntropyLoss()
@@ -85,20 +87,24 @@ def fmg_train(model, dataloader):
                 running_loss = 0.0
 """
 
-"""
+
 def run_fmg_agent():
     args = Setup().parse()
-    args.epochs = 300
+    args.epochs = 300  # 300
     args.start_lr_drop = 150
     args.model_to_train = "fmg"
     args.batch_size = 8
-    args.ckpt_to_load = "./results/run_fmg_2021-04-14_13-57-45/train_fmg_2021-04-14_13-57-45\ckpt/fmg_2021-04-14_13-57-45_epoch_299_ckpt.pth.tar"
-    args.load_ckpt = False
+    args.trainsplit = "train_ids_0.csv"
+    args.testsplit = "test_ids_0.csv"
+    # args.ckpt_to_load = "./results/run_fmg_2021-04-14_13-57-45/train_fmg_2021-04-14_13-57-45\ckpt/fmg_2021-04-14_13-57-45_epoch_299_ckpt.pth.tar"
+    args.ckpt_to_load = "./results/run_fmg_2021-05-20_10-45-40/train_fmg_2021-05-20_10-45-40/ckpt/fmg_2021-05-20_10-45-40_epoch_120_ckpt.pth.tar"
+    # ./results/run_fmg_2021-05-20_10-45-40/train_fmg_2021-05-20_10-45-40/ckpt/fmg_2021-05-20_10-45-40_epoch_120_ckpt.pth.tar
+    args.load_ckpt = 0
 
     fmgagent = FmgAgent(args)
-    # fmgagent.run()
-    fmgagent.test("./results/run_fmg_2021-04-14_13-57-45/test_fmg_2021-04-14_13-57-45\plots/")
-"""
+    fmgagent.run()
+    #fmgagent.test("./results/run_fmg_2021-04-14_13-57-45/test_fmg_2021-04-14_13-57-45\plots/")
+
 
 
 def run_fmpn_agent():
@@ -151,16 +157,52 @@ def run_inc_agent():
 
 
 from lib.agents.runner import Runner
-
+import matplotlib.pyplot as plt
+from lib.featurevisualization.deepdream import DeepDream
 
 
 if __name__ == '__main__':
     args = Setup().parse()
+    """--- train networks ---"""
+    # comment "train mask generator" section
+    # to.cuda.empty_cache()
+    # runner = Runner(args)
 
-    runner = Runner(args)
+    # runner.start()
 
-    runner.start()
-    """
+    """--- train mask generator ---"""
+    # comment "train networks" section
+    # run_fmg_agent()
+
+    """--- run DeepDream algorithm ---"""
+    # load a model -> model needs a inference function
+    # init deep dream class
+    # python main.py --deepdream_model "incv3" --pretrained 1 --load_ckpt 1 --ckpt_to_load "F:\trainings2\inceptionnet\pretrained\8\run_incv3_2021-05-10_19-26-32\train_incv3_2021-05-
+    # 10_19-26-32\ckpt\incv3_epoch_199_ckpt.pth.tar" --dataset ckp --batch_size 1
+    dream = DeepDream(args)
+    batch = next(iter(dream.train_dl))
+
+    img = batch["image"].to(to.device('cuda:0'))
+    # print(img.size())
+    # label = batch["label"]
+    # print(img)
+    #plt.imshow(img.cpu().squeeze().permute(1,2,0))
+    #plt.show()
+    # print(f"Label: {label}")
+    # output = dream.model.Conv2d_1a_3x3.conv(img)
+    # print(output)
+
+    # dream.gradient_step(img)
+    dream.dream(img)
+
+"""
+python main.py --deepdream_model "incv3" --pretrained 1 --load_ckpt 1 --ckpt_to_load "F:\trainings2\inceptionnet\pretrained\8\run_incv3_2021-05-10_19-26-32\train_incv3_2021-05-
+10_19-26-32\ckpt\incv3_epoch_199_ckpt.pth.tar" --batch_size 2
+
+"""
+
+
+"""
 for %i in (0) do python main.py --mode train --gpu_id 0 --model_to_train densenet --epochs 200 --save_ckpt_intv 50 --load_size 245 --final_size 224 --pretrained 0 --dataset ckp --batch_size 8 --lr_gen 0.001 --trainsplit train_ids_%i.csv --testsplit test_ids_%i.csv
 """
 
@@ -179,3 +221,16 @@ for %i in (0) do python main.py --mode train --gpu_id 0 --model_to_train densene
     # print(classes)
     # plt.bar([0, 1, 2, 3, 4, 5, 6], classes)
     # plt.show()
+
+#
+# run evaluation:
+#
+# python main.py --mode test --gpu_id 0 --model_to_train densenet --load_ckpt 1 --ckpt_to_load "./results/run_densenet_2021-05-11_15-36-08/train_densenet_2021-05-11_15-36-08/ckpt/densenet_epoch_199_ckpt.pth.tar" --load_size 245 --final_size 224 --dataset ckp --batch_size 8  --trainsplit train_ids_3.csv --testsplit test_ids_3.csv
+#
+
+#
+#  RUN A TEST FOR EXAMPLE DENSENET ON TRAIN, TEST SPLIT 3
+#  you have to load the last training checkpoint...
+#
+# python main.py --mode test --gpu_id 0 --model_to_train densenet --load_ckpt 1 --ckpt_to_load "./results/run_densenet_2021-05-11_15-36-08/train_densenet_2021-05-11_15-36-08/ckpt
+# /densenet_epoch_199_ckpt.pth.tar" --load_size 245 --final_size 224 --dataset ckp --batch_size 8  --trainsplit train_ids_3.csv --testsplit test_ids_3.csv

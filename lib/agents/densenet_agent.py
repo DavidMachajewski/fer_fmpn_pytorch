@@ -1,9 +1,12 @@
+import json
+
 import torch
 import pickle
+import pandas as pd
 from tqdm import tqdm, trange
 from lib.agents.agent import Agent
 from lib.models.models import densenet121
-from lib.eval.eval_utils import make_cnfmat_plot
+from lib.eval.eval_utils import make_cnfmat_plot, prec_recall_fscore, roc_auc_score
 from lib.models.models import get_ckp
 
 
@@ -216,6 +219,22 @@ class DenseNetAgent(Agent):
                              n_classes=self.args.n_classes,
                              path=self.test_plots,
                              gpu_device=self.args.gpu_id)
+
+            # calculate precision recall fscore
+            clf_report = prec_recall_fscore(y_true=all_labels.cpu(), y_pred=all_predictions.cpu())
+            roc_score = roc_auc_score(y_true=all_labels.cpu(), y_pred=all_predictions.cpu(), n_classes=self.args.n_classes)
+            # out_df.to_csv(self.test_plots + "clf_report.csv", index=False)
+            out_dict = {
+                "precision": clf_report[0].round(2).tolist(),
+                "recall": clf_report[1].round(2).tolist(),
+                "f1": clf_report[2].round(2).tolist(),
+                "support": clf_report[3].tolist(),
+                "roc_auc_ovr": roc_score.tolist()
+            }
+            with open(self.test_plots + "clf_report.txt", "w") as f:
+                print(out_dict, file=f)
+            print(out_dict)
+            print(roc_score)
             return epoch_val_loss, epoch_val_acc
 
     def run(self):

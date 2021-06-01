@@ -1,10 +1,11 @@
 import pickle
 import torch
+import pandas as pd
 from tqdm import tqdm, trange
 from lib.models.models import get_ckp
 from lib.agents.agent import Agent
 from lib.models.models import inceptionv3
-from lib.eval.eval_utils import make_cnfmat_plot
+from lib.eval.eval_utils import make_cnfmat_plot, prec_recall_fscore
 
 #
 # :TODO:
@@ -25,7 +26,8 @@ class InceptionAgent(Agent):
             self.train_dl, self.test_dl = get_ckp(args=self.args,
                                                   batch_size=self.args.batch_size,
                                                   shuffle=True,
-                                                  num_workers=self.args.num_workers)
+                                                  num_workers=self.args.num_workers,
+                                                  drop_last=True)
         self.opt = self.__init_optimizer__()
         self.loss_fn = torch.nn.CrossEntropyLoss()
         self.device = self.__set_device__()
@@ -129,7 +131,9 @@ class InceptionAgent(Agent):
 
         for i, batch in enumerate(self.train_dl):
             images = batch["image"].to(self.device)
+            # print("image: ", images)
             labels = batch["label"].to(self.device)
+            # print("label: ", labels)
 
             self.opt.zero_grad()
 
@@ -211,6 +215,22 @@ class InceptionAgent(Agent):
                              n_classes=self.args.n_classes,
                              path=self.test_plots,
                              gpu_device=self.args.gpu_id)
+
+            # calculate precision recall fscore
+            clf_report = prec_recall_fscore(y_true=all_labels, y_pred=all_predictions)
+            out_dict = {
+                "precision": clf_report[0].round(2),
+                "recall": clf_report[1].round(2),
+                "f1": clf_report[2].round(2),
+                "support": clf_report[3]
+            }
+            out_df = pd.DataFrame(out_dict, index=self.args.n_classes)
+            avg_tot = (out_df.apply(lambda x: round(x.mean(), 2) if x.name!="support" else  round(x.sum(), 2)).to_frame().T)
+            avg_tot.index = ["avg/total"]
+            out_df = out_df.append(avg_tot)
+            # save to file
+            out_df.to_csv(self.test_plots+"clf_report.csv", index=False)
+
             return epoch_val_loss, epoch_val_acc
 
     def run(self):

@@ -43,4 +43,6 @@ class Runner:
         if self.args.mode == "test":
             """simple test loop if you want to load a ckpt and test it.
             Otherwise it is testet directly after training"""
+            model.__create_folders__()
+            model.save_args(model.run_path + "args.txt")
             model.test()

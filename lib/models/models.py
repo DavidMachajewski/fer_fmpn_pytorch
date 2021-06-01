@@ -166,13 +166,16 @@ class PriorFusionNetwork(nn.Module):
     def forward(self, imgorg, imgheat):
         """
         :param img_org: Original image passed to the "FMPN" with shape (3;W;H)
-        :param img_mul: Grayscale version of img_org multiplied with predicted gtm by fmg
+        :param img_heat: Grayscale version of img_org multiplied with predicted gtm by fmg
         :return: img_org + img_mul after some convolutions and
         fitting to the final_shape for classifiers
         """
         imgorg = self.prep_org(imgorg)
         imgheat = self.prep_heat(imgheat)
-        return self.model(imgorg + imgheat)
+        #
+        # added imgorg and imgheat to return for debugging
+        #
+        return self.model(imgorg + imgheat), imgorg, imgheat
 
 
 class NetworkSetup(object):
