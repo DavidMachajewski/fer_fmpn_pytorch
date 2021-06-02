@@ -159,7 +159,8 @@ def run_inc_agent():
 from lib.agents.runner import Runner
 import matplotlib.pyplot as plt
 from lib.featurevisualization.deepdream import DeepDream
-
+import numpy as np
+import PIL
 
 if __name__ == '__main__':
     args = Setup().parse()
@@ -183,17 +184,37 @@ if __name__ == '__main__':
     batch = next(iter(dream.train_dl))
 
     img = batch["image"].to(to.device('cuda:0'))
+    img.requires_grad = True
     # print(img.size())
     # label = batch["label"]
     # print(img)
-    #plt.imshow(img.cpu().squeeze().permute(1,2,0))
-    #plt.show()
+    test_img = img.clone()
+    plt.imshow(test_img[0].detach().cpu().squeeze().permute(1,2,0))
+    # plt.show()
+
     # print(f"Label: {label}")
     # output = dream.model.Conv2d_1a_3x3.conv(img)
     # print(output)
+    merge = [test_img[0].clone().detach().cpu().squeeze().permute(1,2,0).numpy()]
 
     # dream.gradient_step(img)
-    dream.dream(img)
+    # dream.dream(img)
+
+    # make for loop with the same batch
+    # for more layer
+    for i in range(5):
+        imgs_array = dream.start_dreaming(img, layer_no=i)
+        # fig = plt.figure(figsize=(10, 10))
+        # plt.imshow(imgs_array[0])
+        print(np.array((imgs_array[0])))
+        merge.append(np.array((imgs_array[0]))/255)
+        # plt.show()
+    merged_img = np.hstack(tuple(merge))
+    fig = plt.figure(figsize=(15, 15))
+    plt.imshow(merged_img)
+    plt.axis('off')
+    # plt.show()
+    plt.savefig("C:/root/uni/bachelor/inceptionnet_feature_extraction20.png", bbox_inches='tight')
 
 """
 python main.py --deepdream_model "incv3" --pretrained 1 --load_ckpt 1 --ckpt_to_load "F:\trainings2\inceptionnet\pretrained\8\run_incv3_2021-05-10_19-26-32\train_incv3_2021-05-

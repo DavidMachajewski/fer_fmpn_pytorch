@@ -2,6 +2,7 @@
 #
 # Source:
 # ####################################
+from PIL import Image, ImageFilter, ImageChops
 import numpy as np
 import torch
 import scipy.ndimage as nd
@@ -9,6 +10,7 @@ from lib.models.models import inceptionv3
 from lib.agents.inc_agent import InceptionAgent
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
+from torchvision import transforms
 
 
 class DeepDream:
@@ -36,9 +38,13 @@ class DeepDream:
         self.activation = {}
         self.images_used = []
 
+        self.denormalize = transforms.Compose(
+            [transforms.Normalize(mean=[0., 0., 0.], std=[1 / 0.229, 1 / 0.224, 1 / 0.225]),
+             transforms.Normalize(mean=[-0.485, -0.456, -0.406], std=[1., 1., 1.])])
+
     def get_activation(self, name):
         def hook(model, input, output):
-            print("make a hook!")
+            # print("make a hook!")
             # self.activation[name] = output.detach()
             self.activation[name] = output
         return hook
@@ -55,8 +61,8 @@ class DeepDream:
     def __get_layer_names__(self):
         layer_names = []
         for name, layer in self.model.named_modules():
-            if isinstance(layer, torch.nn.Conv2d):
-                layer_names.append(name)
+            #if isinstance(layer, torch.nn.Conv2d):
+            layer_names.append(name)
         return layer_names
 
     def load_model(self):
@@ -105,7 +111,7 @@ class DeepDream:
             print("Input tensor type: ", type(input_image))
             print("input image of tensor type: ", type(input_image[0]))
             gradient = input_image.grad.data
-            print(np.shape(gradient[0]))
+            print(gradient[0])
 
             sigma = 1 / 10 * 2 + 2.0 * 0.5
 
@@ -159,7 +165,7 @@ class DeepDream:
                     image_tensor = self.jitter_shift(image_tensor, h_shift, w_shift)
                     print("after jitter: ", type(image_tensor))
                     image_tensor_batch = torch.cat((image_tensor, image_tensor.clone()), dim=0)
-                    print("after jitter2: ", image_tensor.shape)
+                    print("after jitter2: ", image_tensor_batch.shape)
                     self.gradient_step(image_tensor_batch)
                     image_tensor = self.jitter_shift(image_tensor, h_shift, w_shift, deshift=True)
 
@@ -173,8 +179,68 @@ class DeepDream:
             image_tensor.requires_grad = True
             return image_tensor
 
+    def hook_layer_no(self, idx):
+        layer_to_grab = [
+            self.model.Conv2d_1a_3x3.register_forward_hook(self.get_activation('Conv2d_1a_3x3.conv')),
+            self.model.Conv2d_2a_3x3.register_forward_hook(self.get_activation('Conv2d_2a_3x3.conv')),
+            self.model.Mixed_5b.register_forward_hook(self.get_activation('Mixed_5b.branch1x1.conv')),
+            self.model.Mixed_7a.register_forward_hook(self.get_activation('Mixed_5b.branch1x1.conv')),
+            self.model.Mixed_7c.register_forward_hook(self.get_activation('Mixed_7c.branch3x3dbl_2.conv'))
+        ]
+        return layer_to_grab[idx]
 
+    def get_gradients(self, img_batch, layer_no):
+        print("get gradients")
 
+        for tensor in img_batch:
+            print(tensor.requires_grad)
+
+        self.model.zero_grad()
+
+        # self.model.Conv2d_1a_3x3.register_forward_hook(self.get_activation('Conv2d_1a_3x3.conv'))
+        # self.model.Conv2d_2a_3x3.register_forward_hook(self.get_activation('Conv2d_2a_3x3.conv'))
+        # self.model.Mixed_5b.register_forward_hook(self.get_activation('Mixed_5b.branch1x1.conv'))
+        # self.model.Mixed_7a.register_forward_hook(self.get_activation('Mixed_5b.branch1x1.conv'))
+        # self.model.Mixed_7c.register_forward_hook(self.get_activation('Mixed_7c.branch3x3dbl_2.conv'))
+        self.hook_layer_no(layer_no)
+
+        predictions = self.model(img_batch)
+
+        loss = []
+        for key in self.activation:
+            loss.append(self.activation[key][0].norm())
+            # print(self.activation[key])
+            #for hook in self.activation[key]:
+            #    print(hook[0].norm())
+
+        print("amount of loss: ", loss)
+        loss[0].backward()
+
+        print("gradient data of image")
+        print(np.shape(img_batch.grad.data))
+        return img_batch.grad.data
+
+    def start_dreaming(self, img_batch, iterations_n=20, lr=1.8, layer_no=0):
+        print("start dreaming")
+        img_batch = img_batch
+        for i in range(iterations_n):
+            print("Iteration no. {0}".format(i))
+            gradients_batch = self.get_gradients(img_batch, layer_no)
+            for idx, image_tensor in enumerate(img_batch):
+                with torch.no_grad():
+                    img_batch[idx] = img_batch[idx] + lr * gradients_batch[idx].squeeze()
+
+        imgs = img_batch.detach().cpu()
+
+        imgs = self.denormalize(imgs)
+        imgs_np = []
+        for tensor in imgs:
+            imgs_np.append(tensor.numpy().transpose(1,2,0))
+
+        imgs_plot = []
+        for imgs in imgs_np:
+            imgs_plot.append(Image.fromarray(np.uint8(imgs * 255)))
+        return imgs_plot
 
 
 
