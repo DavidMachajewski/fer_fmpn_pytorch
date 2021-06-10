@@ -13,6 +13,22 @@ import torch.nn.functional as F
 from torchvision import transforms
 
 
+
+
+"""
+
+TO RUN: 
+
+python main.py --deepdream_model "incv3" --pretrained 1 --load_ckpt 1 --ckpt_to_load "F:\trainings2\inceptionnet\pretrained\8\run_incv3_2021-05-10_19-26-32\train_incv3_2021-05-
+10_19-26-32\ckpt\incv3_epoch_199_ckpt.pth.tar" --batch_size 2
+
+
+"""
+
+
+
+
+
 class DeepDream:
     """Implementation of the DeepDream Algorithm
     by A. Mord..
@@ -220,7 +236,7 @@ class DeepDream:
         print(np.shape(img_batch.grad.data))
         return img_batch.grad.data
 
-    def start_dreaming(self, img_batch, iterations_n=20, lr=1.8, layer_no=0):
+    def start_dreaming(self, img_batch, iterations_n=50, lr=1.8, layer_no=0):
         print("start dreaming")
         img_batch = img_batch
         for i in range(iterations_n):
@@ -266,5 +282,51 @@ class DeepDream:
         print(len(octaves[1]))
 
         detail = np.zeros_like(octaves[0][-1])
+
+"""
+
+"""
+sources:
+Implementation of Deep Dream using Pytorch
+(1) https://github.com/juanigp/Pytorch-Deep-Dream/blob/master/Deep_Dream.ipynb
+
+https://www.reddit.com/r/MachineLearning/comments/du0ril/p_a_deep_dream_implementation_in_pytorch/
+
+https://distill.pub/2017/feature-visualization/
+
+ptorch forum: https://discuss.pytorch.org/t/visualize-feature-map/29597/2
+
+https://github.com/gordicaleksa/pytorch-deepdream/blob/master/deepdream.py
+
+
+https://github.com/smnai/dreaminpytorch/blob/master/dream.py
+
+
+https://github.com/google/deepdream/blob/master/dream.ipynb
+
+https://debuggercafe.com/visualizing-filters-and-feature-maps-in-convolutional-neural-networks-using-pytorch/
+
+https://ai.googleblog.com/2015/06/inceptionism-going-deeper-into-neural.html
+
+https://github.com/gordicaleksa/pytorch-deepdream/blob/f37d99a1fa0cafa94aa99d9384026292a3c9bb6c/utils/utils.py#L183
+
+
+
+Confusion matrices
+precision
+recall
+etc.
+
+https://www.sciencedirect.com/topics/computer-science/confusion-matrix
+
+https://www.dataschool.io/simple-guide-to-confusion-matrix-terminology/
+
+https://www.sciencedirect.com/topics/computer-science/confusion-matrix
+
+https://www.dataschool.io/simple-guide-to-confusion-matrix-terminology/
+
+https://stackoverflow.com/questions/45088949/how-can-i-calculate-precision-and-recall-for-sentiment-analysis-multi-class-clas
+
+https://towardsdatascience.com/confusion-matrix-for-your-multi-class-machine-learning-model-ff9aa3bf7826
 
 """

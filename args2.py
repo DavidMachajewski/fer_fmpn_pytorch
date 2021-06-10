@@ -12,14 +12,14 @@ class Setup(object):
 
         parser.add_argument('--mode', type=str, default='train', help='Type of execution. [train|test]')
         parser.add_argument('--gpu_id', type=int, default=0, help='id of gpu to train on. Note: Check if this GPU is free before using it')
-        parser.add_argument('--model_to_train', type=str, default='fmpn', help='["fmg" | "fmpn" | "resnet18" | "incv3" | "densenet]')
+        parser.add_argument('--model_to_train', type=str, default='fmpn', help='["fmg" | "fmpn" | "resnet18" | "incv3" | "densenet | "vgg"]')
         parser.add_argument('--epochs', type=int, default=2, help="# of total epochs to train.")
         parser.add_argument('--pretrained', type=int, default=0, help="Loading the pretrained model (Default=0). [0, 1]. "
                                                                            "You need to provide path to the model.")
         parser.add_argument('--fmpn_cn', type=str, default="inc_v3", help="name of classifier model to use. ['inc_v3 | resnet18']")
         parser.add_argument('--fmpn_cn_pretrained', type=int, default=0, help="Loading imageNet pretrained cn? [0|1]")
 
-        parser.add_argument('--dataset', type=str, default='ckp', help="[ckp|affectnet]")
+        parser.add_argument('--dataset', type=str, default='ckp', help="[ckp|fer|affectnet]")
         parser.add_argument('--n_classes', type=int, default=7, help="# of classes. E.g. ckp has 7.")
         parser.add_argument('--num_workers', type=int, default=4, help="# workers for loading images parallel. Used by the dataloader.")
         parser.add_argument('--batch_size', type=int, default=8, help="batch size of dataset")
@@ -48,9 +48,14 @@ class Setup(object):
         parser.add_argument('--ckp_images', type=str, default="./datasets/ckp/images_cropped/", help="path to ""cropped ckp images")
         parser.add_argument('--ckp_csvsplits', type=str, default="./datasets/ckp/tensplit/", help="path to ckp splits")
         parser.add_argument('--fer_images', type=str, default="./datasets/fer/fer2013.csv", help="path to fer dataset file")
+        parser.add_argument('--fer', type=str, default="./datasets/fer/", help="path to fer dataset folder")
 
         parser.add_argument('--affectnet_manual', type=str, default="./datasets/affectnet/training.csv")
         parser.add_argument('--affectnet', type=str, default="./datasets/affectnet/")
+        parser.add_argument('--affectnet_images', type=str, default="D:/Downloads/Manually_Annotated_compressed/Manually_Annotated_compressed/")
+        #
+        # :TODO: change fer_csvsplits parameter if there will not be a tensplit
+        #
         parser.add_argument('--fer_csvsplits', type=str, default="./datasets/ckp/tensplit/", help="path to ckp splits")
 
         parser.add_argument('--masks', type=str, default="./datasets/masks/", help="path to masks folder")

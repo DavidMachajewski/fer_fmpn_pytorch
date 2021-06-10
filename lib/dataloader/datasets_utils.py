@@ -19,20 +19,31 @@ import pandas as pd
 from args2 import Setup
 from sklearn.model_selection import KFold
 from sklearn.utils import shuffle
+import matplotlib.pyplot as plt
 
 
 class FERUtils():
     def __init__(self, args):
-        self.dataset = self.__load_csv__(args)
+        self.args = args
+        self.dataset = None
         self.train = None
         self.test = None
         self.val = None
+        self.__load_csv__(args)
 
     def __load_csv__(self, args):
-        dataset = pd.read_csv(args.fer_images)
-        print(dataset.values.shape)
-        print(dataset.head())
-        return dataset
+        self.dataset = pd.read_csv(args.fer_images)
+        self.train = self.dataset.loc[self.dataset['Usage'] == "Training"]
+        self.test = self.dataset.loc[self.dataset['Usage'] == "PublicTest"]
+        self.val = self.dataset.loc[self.dataset['Usage'] == "PrivateTest"]
+
+    def save_to_csv(self):
+        train_filename = "train_ids_0.csv"
+        test_filename = "test_ids_0.csv"
+        val_filename = "val_ids_0.csv"
+        self.train.to_csv(self.args.fer + train_filename, index=False)
+        self.test.to_csv(self.args.fer + test_filename, index=False)
+        self.val.to_csv(self.args.fer + val_filename, index=False)
 
     def show_sample(self):
         pass
@@ -40,6 +51,7 @@ class FERUtils():
 
 class AffectNetUtils():
     """
+    training.csv is the manual annotated data
     0: neutral
     1: happiness
     2: sadness
@@ -137,31 +149,45 @@ class AffectNetUtils():
             self.test_dfs.append(test_df)
 
 
-
-
-
-
-
-
-if __name__ == '__main__':
+def run_affectnet_csv():
     args = Setup().parse()
     args.affectnet_manual = "../../datasets/affectnet/training.csv"
     args.affectnet = "../../datasets/affectnet/"
     afnet = AffectNetUtils(args)
 
+
 """
 if __name__ == '__main__':
     args = Setup().parse()
-    args.fer_images = "../../datasets/fer/fer2013.csv"
-    fer = FERUtils(args)
-    data = fer.dataset.values
-    print(fer.dataset['Usage'].value_counts())
-    labels = data[:, 0]
-    pix = data[:, 1]
-    print("test: ", pix)
+"""
 
+
+if __name__ == '__main__':
+    args = Setup().parse()
+    args.fer_images = "../../datasets/fer/fer2013.csv"
+    args.fer = "../../datasets/fer/"
+    fer = FERUtils(args)
+
+    # data = fer.dataset.values
+    # print(fer.dataset['Usage'].value_counts())
+    # labels = data[:, 0]
+    # pix = data[:, 1]
+    # print("test: ", pix)
+    print(fer.train)
+    print(fer.train.iloc[[0]]["emotion"].values)
+    print(fer.train.iloc[[0]]["pixels"].values)
+    print(fer.train.iloc[[0]]["Usage"].values)
+
+
+
+    # Training
+    # PrivateTest
+    # PublicTest
+
+"""
     # create array of all images with shape (n_images, n_pixels)
     images = np.zeros((pix.shape[0], 48*48))
+
 
     print(images.shape)
 
@@ -177,5 +203,5 @@ if __name__ == '__main__':
         plt.figure(idx)
         plt.imshow(images[idx].reshape((48, 48)), interpolation='none', cmap='gray')
         plt.show()
-
+        
 """

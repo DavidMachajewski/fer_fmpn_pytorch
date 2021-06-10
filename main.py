@@ -161,6 +161,18 @@ import matplotlib.pyplot as plt
 from lib.featurevisualization.deepdream import DeepDream
 import numpy as np
 import PIL
+from lib.dataloader.datasets import AffectNetSubset
+from lib.dataloader.datasets import get_fer2013, get_affectnet
+
+
+def ferexample(args):
+    train_dl, test_dl = get_fer2013(args)
+    for batch in train_dl:
+        img = batch['image']
+        label = batch['label']
+        print("label: ", label)
+        print("image: ", img)
+
 
 if __name__ == '__main__':
     args = Setup().parse()
@@ -168,6 +180,8 @@ if __name__ == '__main__':
     # comment "train mask generator" section
     # to.cuda.empty_cache()
     # runner = Runner(args)
+    args.trainsplit = "train_ids_0.csv"
+    args.testsplit = "test_ids_0.csv"
 
     # runner.start()
 
@@ -175,7 +189,22 @@ if __name__ == '__main__':
     # comment "train networks" section
     # run_fmg_agent()
 
-    """--- run DeepDream algorithm ---"""
+    # ferexample(args)
+    train_dl, test_dl = get_affectnet(args=args, subset=1)
+
+    batches = next(iter(train_dl))
+    for idx in range(len(batches['image'])):
+        image = batches['image'][idx]
+        plt.imshow(image.permute(1, 2, 0))
+        plt.show()
+
+    #for image, label in next(iter(train_dl)):
+    #    plt.imshow(image.permute(1,2,0))
+    #plt.show()
+
+"""
+    # --- run DeepDream algorithm ---
+    
     # load a model -> model needs a inference function
     # init deep dream class
     # python main.py --deepdream_model "incv3" --pretrained 1 --load_ckpt 1 --ckpt_to_load "F:\trainings2\inceptionnet\pretrained\8\run_incv3_2021-05-10_19-26-32\train_incv3_2021-05-
@@ -214,7 +243,16 @@ if __name__ == '__main__':
     plt.imshow(merged_img)
     plt.axis('off')
     # plt.show()
-    plt.savefig("C:/root/uni/bachelor/inceptionnet_feature_extraction20.png", bbox_inches='tight')
+    plt.savefig("C:/root/uni/bachelor/inceptionnet_feature_extraction23.png", bbox_inches='tight')
+"""
+
+
+
+
+
+
+
+
 
 """
 python main.py --deepdream_model "incv3" --pretrained 1 --load_ckpt 1 --ckpt_to_load "F:\trainings2\inceptionnet\pretrained\8\run_incv3_2021-05-10_19-26-32\train_incv3_2021-05-

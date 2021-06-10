@@ -599,13 +599,38 @@ class RunFMPN(RunSetup):
         pass
 
 
+
+def vgg19(pretrained=False):
+    """Source of vgg pytorch:
+    https://github.com/pytorch/vision/blob/master/torchvision/models/vgg.py"""
+    n_channels = 1
+    n_classes = 7
+    if pretrained:
+        print("Loading pretrained model...")
+        vgg = tv.models.vgg19(transform_input=True, init_weights=False)
+        state_dict = to.hub.load_state_dict_from_url(
+            'https://download.pytorch.org/models/vgg19-dcbb9e9d.pth')
+        state = {k: v for k, v in state_dict.items() if k in vgg.state_dict()}
+        vgg.load_state_dict(state)
+        print("Loaded ")
+        vgg.features[0] = to.nn.Conv2d(n_channels, 64, kernel_size=(3,3), stride=(1,1), padding=(1,1))
+        vgg.classifier[6] = to.nn.Linear(in_features=4096, out_features=n_classes, bias=True)
+    else:
+        print("Loading non pretrained model...")
+        vgg = tv.models.vgg19(transform_input=True, init_weights=False)
+        vgg.features[0] = to.nn.Conv2d(n_channels, 64, kernel_size=(3,3), stride=(1,1), padding=(1,1))
+        vgg.classifier[6] = to.nn.Linear(in_features=4096, out_features=n_classes, bias=True)
+    return vgg
+
+
 def inceptionv3(pretrained=False):
     """Input size for inception net is (3. 229, 299) """
     if pretrained:
         print("Loading pretrained model...")
         inc = tv.models.Inception3(transform_input=True,
                                    init_weights=False)
-        state_dict = to.hub.load_state_dict_from_url('https://download.pytorch.org/models/inception_v3_google-1a9a5a14.pth')
+        state_dict = to.hub.load_state_dict_from_url(
+            'https://download.pytorch.org/models/inception_v3_google-1a9a5a14.pth')
         state = {k: v for k, v in state_dict.items() if k in inc.state_dict()}
         inc.load_state_dict(state)
         print("Loaded ")
