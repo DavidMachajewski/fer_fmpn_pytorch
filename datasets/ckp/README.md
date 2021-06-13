@@ -1,3 +1,2 @@
-add "images" folder and inside all ck+ image
-folders (S005, S010,...) from the original 
-cohn-kanade-images subfolder.
+add cropped images to "images_cropped" folder with same
+ck+ image subfolder names (S005, S010,...).

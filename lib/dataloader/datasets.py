@@ -40,8 +40,8 @@ class DatasetBase(Dataset):
             #
             # dividing by 255.
             #
-        # img = cv.normalize(img, None, alpha=0, beta=1, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
-        img = 1./255. * img
+        img = cv.normalize(img, None, alpha=0, beta=1, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
+        # img = 1./255. * img
         return img
 
     def __load_mask__(self, label):
@@ -69,8 +69,8 @@ class DatasetBase(Dataset):
         #   just multiply by 1./255.
         #
 
-        # norm_img = cv.normalize(img, None, alpha=0, beta=1, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
-        norm_img = 1./255. * img
+        norm_img = cv.normalize(img, None, alpha=0, beta=1, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
+        # norm_img = 1./255. * img
 
         norm_img = np.expand_dims(norm_img, axis=2)
         return norm_img
@@ -174,10 +174,15 @@ class FER2013(DatasetBase):
         pixels = self.data.iloc[[idx]]["pixels"].values
 
         img = self.get_img_as_2d_array(pixels)
-        img = np.expand_dims(img, axis=-1)
-        img = img * 1./255.
-        img_gray = img
-        img_gray = np.expand_dims(img_gray, axis=-1)  # (W;H;1)
+        # img = np.expand_dims(img, axis=-1)
+        # img = img * 1./255.
+        img = cv.normalize(img, None, alpha=0, beta=1, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
+        img = cv.cvtColor(img, cv.COLOR_GRAY2RGB)
+        img = cv.resize(img, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC )
+
+        # img_gray = img
+        # img_gray = np.expand_dims(img_gray, axis=-1)  # (W;H;1)
+
         # for loading mask we need the right ck+ label
         # so use the convert_label function first!
         # but for now we do not provide mask because
@@ -186,7 +191,6 @@ class FER2013(DatasetBase):
         #   to use FER2013 together with the FMPN network
         #   - Do we need to use "neutral" class ?
         #     if not we could use the FMPN network approach
-
         # mask = self.__load_mask__(label)
 
         # sample = {'image': img,

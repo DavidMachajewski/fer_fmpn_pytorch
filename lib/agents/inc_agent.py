@@ -3,9 +3,11 @@ import torch
 import pandas as pd
 from tqdm import tqdm, trange
 from lib.models.models import get_ckp
+from lib.dataloader.datasets import get_fer2013
 from lib.agents.agent import Agent
 from lib.models.models import inceptionv3
 from lib.eval.eval_utils import make_cnfmat_plot, prec_recall_fscore
+
 
 #
 # :TODO:
@@ -28,6 +30,15 @@ class InceptionAgent(Agent):
                                                   shuffle=True,
                                                   num_workers=self.args.num_workers,
                                                   drop_last=True)
+            print("Loaded ckp dataset.")
+        elif self.args.dataset == "fer":
+            self.train_dl, self.test_dl = get_fer2013(args=self.args,
+                                                      batch_size=self.args.batch_size,
+                                                      shuffle=True,
+                                                      num_workers=self.args.num_workers,
+                                                      drop_last=True)
+            print("Loaded fer dataset.")
+
         self.opt = self.__init_optimizer__()
         self.loss_fn = torch.nn.CrossEntropyLoss()
         self.device = self.__set_device__()
@@ -130,6 +141,7 @@ class InceptionAgent(Agent):
         epoch_loss, epoch_acc = 0.0, 0.0
 
         for i, batch in enumerate(self.train_dl):
+            # print("batch {0} out of {1}".format(i, len(self.train_dl)))
             images = batch["image"].to(self.device)
             # print("image: ", images)
             labels = batch["label"].to(self.device)
@@ -225,12 +237,12 @@ class InceptionAgent(Agent):
                 "support": clf_report[3]
             }
             out_df = pd.DataFrame(out_dict, index=self.args.n_classes)
-            avg_tot = (out_df.apply(lambda x: round(x.mean(), 2) if x.name!="support" else  round(x.sum(), 2)).to_frame().T)
+            avg_tot = (
+                out_df.apply(lambda x: round(x.mean(), 2) if x.name != "support" else round(x.sum(), 2)).to_frame().T)
             avg_tot.index = ["avg/total"]
             out_df = out_df.append(avg_tot)
             # save to file
-            out_df.to_csv(self.test_plots+"clf_report.csv", index=False)
-
+            out_df.to_csv(self.test_plots + "clf_report.csv", index=False)
             return epoch_val_loss, epoch_val_acc
 
     def run(self):

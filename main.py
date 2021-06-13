@@ -178,25 +178,12 @@ if __name__ == '__main__':
     args = Setup().parse()
     """--- train networks ---"""
     # comment "train mask generator" section
-    # to.cuda.empty_cache()
-    # runner = Runner(args)
-    args.trainsplit = "train_ids_0.csv"
-    args.testsplit = "test_ids_0.csv"
-
-    # runner.start()
+    runner = Runner(args)
+    runner.start()
 
     """--- train mask generator ---"""
     # comment "train networks" section
     # run_fmg_agent()
-
-    # ferexample(args)
-    train_dl, test_dl = get_affectnet(args=args, subset=1)
-
-    batches = next(iter(train_dl))
-    for idx in range(len(batches['image'])):
-        image = batches['image'][idx]
-        plt.imshow(image.permute(1, 2, 0))
-        plt.show()
 
     #for image, label in next(iter(train_dl)):
     #    plt.imshow(image.permute(1,2,0))

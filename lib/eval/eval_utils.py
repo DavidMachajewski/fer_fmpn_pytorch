@@ -161,6 +161,9 @@ def make_cnfmat_plot(labels, predictions, n_classes, path, gpu_device, title="")
     print(cnfmat)
     np.savetxt(path + "cnfmat.txt", cnfmat.numpy())
     cnfmat = cnfmat.detach().cpu().numpy()
+    # calculate the sum of row i over all columns (predictions j)
+    # leads to a tensor of shape (n_classes, 1) with
+    # num_examples per class i
     cnfmat_sum = cnfmat.sum(axis=1)[:, np.newaxis]
     print(cnfmat_sum)
     for i in cnfmat_sum:
