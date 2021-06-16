@@ -24,13 +24,13 @@ class FmpnAgent(Agent):
         self.name = "fmpn"
         self.fmg = FacialMaskGenerator()
         self.pfn = PriorFusionNetwork()
+        self.cn = self.init_cn()
         # self.cn = tv.models.Inception3(num_classes=7, init_weights=True)
         #
         # :TODO: load with class function the right cn...
         #
         # self.cn = torch.hub.load('pytorch/vision:v0.9.0', 'inception_v3', pretrained=True)
         # self.cn.fc = nn.Linear(2048, 7)
-        self.cn = self.init_cn()
         # print(self.cn)
 
         self.opt = self.__init_optimizer__()
@@ -43,7 +43,7 @@ class FmpnAgent(Agent):
         self.train_dl, self.test_dl = get_ckp(args=self.args,
                                               batch_size=self.args.batch_size,
                                               shuffle=True,
-                                              num_workers=8)
+                                              num_workers=self.args.num_workers)
         self.loss_fmg_fn = nn.MSELoss()
         self.loss_cn_fn = nn.CrossEntropyLoss()
 
