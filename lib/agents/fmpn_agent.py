@@ -311,6 +311,12 @@ class FmpnAgent(Agent):
             label_masks = batch["mask"].to(self.device)
             labels = batch["label"].to(self.device)
 
+            # print("img, img_gray, lbl, lbls cuda? {}, {}, {}, {}".format(
+            #    images.is_cuda,
+            #    images_gray.is_cuda,
+            #    label_masks.is_cuda,
+            #    labels.is_cuda))
+
             self.opt.zero_grad()
 
             predicted_masks = self.fmg(images_gray).to(self.device)
@@ -318,7 +324,6 @@ class FmpnAgent(Agent):
 
             heat_face.to(self.device)
             fusion_img, imgorg_after_pfn_prep, imgheat_after_pfn_prep = self.pfn(images, heat_face)
-
 
             # save images
             if self.tmp_epoch == 299 or self.tmp_epoch % 100 == 0:

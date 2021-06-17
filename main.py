@@ -163,7 +163,7 @@ import numpy as np
 import PIL
 from lib.dataloader.datasets import AffectNetSubset
 from lib.dataloader.datasets import get_fer2013, get_affectnet
-
+from torchvision import utils
 
 def ferexample(args):
     train_dl, test_dl = get_fer2013(args)
@@ -172,6 +172,27 @@ def ferexample(args):
         label = batch['label']
         print("label: ", label)
         print("image: ", img)
+
+
+def visTensor(tensor, ch=0, allkernels=False, nrow=8, padding=1):
+    """
+    https://stackoverflow.com/questions/55594969/how-to-visualise-filters-in-a-cnn-with-pytorch
+    :param tensor:
+    :param ch:
+    :param allkernels:
+    :param nrow:
+    :param padding:
+    :return:
+    """
+    n,c,w,h = tensor.shape
+
+    if allkernels: tensor = tensor.view(n*c, -1, w, h)
+    elif c != 3: tensor = tensor[:,ch,:,:].unsqueeze(dim=1)
+
+    rows = np.min((tensor.shape[0] // nrow + 1, 64))
+    grid = utils.make_grid(tensor, nrow=nrow, normalize=True, padding=padding)
+    plt.figure( figsize=(nrow,rows) )
+    plt.imshow(grid.numpy().transpose((1, 2, 0)))
 
 
 if __name__ == '__main__':
@@ -189,53 +210,44 @@ if __name__ == '__main__':
     #    plt.imshow(image.permute(1,2,0))
     #plt.show()
 
-"""
+
     # --- run DeepDream algorithm ---
-    
-    # load a model -> model needs a inference function
-    # init deep dream class
-    # python main.py --deepdream_model "incv3" --pretrained 1 --load_ckpt 1 --ckpt_to_load "F:\trainings2\inceptionnet\pretrained\8\run_incv3_2021-05-10_19-26-32\train_incv3_2021-05-
-    # 10_19-26-32\ckpt\incv3_epoch_199_ckpt.pth.tar" --dataset ckp --batch_size 1
+"""
+    # python main.py --deepdream_model "incv3" --pretrained 1 --load_ckpt 1 --ckpt_to_load "F:\trainings2\inceptionnet\pretrained\8\run_incv3_2021-05-10_19-26-32\train_incv3_2021-05-10_19-26-32\ckpt\incv3_epoch_199_ckpt.pth.tar" --dataset ckp --batch_size 2 --gpu_id 0
+
+    # args.gpu_id = 0
     dream = DeepDream(args)
     batch = next(iter(dream.train_dl))
 
     img = batch["image"].to(to.device('cuda:0'))
     img.requires_grad = True
-    # print(img.size())
-    # label = batch["label"]
-    # print(img)
+
     test_img = img.clone()
     plt.imshow(test_img[0].detach().cpu().squeeze().permute(1,2,0))
-    # plt.show()
 
-    # print(f"Label: {label}")
-    # output = dream.model.Conv2d_1a_3x3.conv(img)
-    # print(output)
     merge = [test_img[0].clone().detach().cpu().squeeze().permute(1,2,0).numpy()]
 
-    # dream.gradient_step(img)
-    # dream.dream(img)
-
-    # make for loop with the same batch
-    # for more layer
-    for i in range(5):
+    for i in range(5): # iterate over 5 layers
         imgs_array = dream.start_dreaming(img, layer_no=i)
-        # fig = plt.figure(figsize=(10, 10))
-        # plt.imshow(imgs_array[0])
-        print(np.array((imgs_array[0])))
         merge.append(np.array((imgs_array[0]))/255)
-        # plt.show()
     merged_img = np.hstack(tuple(merge))
     fig = plt.figure(figsize=(15, 15))
     plt.imshow(merged_img)
     plt.axis('off')
     # plt.show()
-    plt.savefig("C:/root/uni/bachelor/inceptionnet_feature_extraction23.png", bbox_inches='tight')
+    plt.savefig("C:/root/uni/bachelor/inceptionnet_feature_extraction24.png", bbox_inches='tight')
+
+    # visualize filter
+    kernels = dream.model.Conv2d_4a_3x3.conv.weight.cpu().data
+    print("shape of kernels: ", np.shape(kernels))
+
+    visTensor(kernels, ch=0, allkernels=False)
+    plt.axis('off')
+    plt.ioff()
+    plt.show()
+
+
 """
-
-
-
-
 
 
 

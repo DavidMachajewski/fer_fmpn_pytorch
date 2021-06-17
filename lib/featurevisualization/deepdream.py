@@ -58,13 +58,6 @@ class DeepDream:
             [transforms.Normalize(mean=[0., 0., 0.], std=[1 / 0.229, 1 / 0.224, 1 / 0.225]),
              transforms.Normalize(mean=[-0.485, -0.456, -0.406], std=[1., 1., 1.])])
 
-    def get_activation(self, name):
-        def hook(model, input, output):
-            # print("make a hook!")
-            # self.activation[name] = output.detach()
-            self.activation[name] = output
-        return hook
-
     def __get_img_sample__(self, plot: bool = False):
         batch = next(iter(self.train_dl))
         img = batch["image"].squeeze()
@@ -144,7 +137,6 @@ class DeepDream:
             for tensor in input_image:
                 tensor += 0.1 * gradient
 
-
     def __new_shape__(self, base_shape, pyramid_level):
         shape_margin = 10
         pyramid_ratio = 1.8
@@ -152,7 +144,6 @@ class DeepDream:
         exponent = pyramid_level - pyramid_size + 1
         new_shape = np.round(np.float32(base_shape) * (pyramid_ratio ** exponent)).astype(np.int32)
         return new_shape
-
 
     def dream(self, base_img, iter_n = 10, octave_n = 4, octave_scale = 1.4):
         """
@@ -185,7 +176,6 @@ class DeepDream:
                     self.gradient_step(image_tensor_batch)
                     image_tensor = self.jitter_shift(image_tensor, h_shift, w_shift, deshift=True)
 
-
     def jitter_shift(self, image_tensor, h_shift, w_shift, deshift=False):
         if deshift:
             h_shift = -h_shift
@@ -194,6 +184,13 @@ class DeepDream:
             image_tensor = torch.roll(image_tensor, shifts=(h_shift, w_shift), dims=(2, 3))
             image_tensor.requires_grad = True
             return image_tensor
+
+    def get_activation(self, name):
+        def hook(model, input, output):
+            # print("make a hook!")
+            # self.activation[name] = output.detach()
+            self.activation[name] = output
+        return hook
 
     def hook_layer_no(self, idx):
         layer_to_grab = [
@@ -208,9 +205,6 @@ class DeepDream:
     def get_gradients(self, img_batch, layer_no):
         print("get gradients")
 
-        for tensor in img_batch:
-            print(tensor.requires_grad)
-
         self.model.zero_grad()
 
         # self.model.Conv2d_1a_3x3.register_forward_hook(self.get_activation('Conv2d_1a_3x3.conv'))
@@ -218,27 +212,34 @@ class DeepDream:
         # self.model.Mixed_5b.register_forward_hook(self.get_activation('Mixed_5b.branch1x1.conv'))
         # self.model.Mixed_7a.register_forward_hook(self.get_activation('Mixed_5b.branch1x1.conv'))
         # self.model.Mixed_7c.register_forward_hook(self.get_activation('Mixed_7c.branch3x3dbl_2.conv'))
-        self.hook_layer_no(layer_no)
+        hook = self.hook_layer_no(layer_no)
 
         predictions = self.model(img_batch)
 
         loss = []
         for key in self.activation:
             loss.append(self.activation[key][0].norm())
-            # print(self.activation[key])
-            #for hook in self.activation[key]:
-            #    print(hook[0].norm())
 
-        print("amount of loss: ", loss)
-        loss[0].backward()
+        loss = loss[0]
+        # loss[0].backward()
+        loss.backward()
 
-        print("gradient data of image")
-        print(np.shape(img_batch.grad.data))
+        # print("gradient data of image")
+        # print(img_batch.grad.data)
         return img_batch.grad.data
 
-    def start_dreaming(self, img_batch, iterations_n=50, lr=1.8, layer_no=0):
+    def start_dreaming(self, img_batch, iterations_n=50, lr=2.0, layer_no=0):
+        """starts the whole process
+        :param img_batch:
+        :param iterations_n:
+        :param lr:
+        :param layer_no:
+        :return:
+        """
         print("start dreaming")
+
         img_batch = img_batch
+
         for i in range(iterations_n):
             print("Iteration no. {0}".format(i))
             gradients_batch = self.get_gradients(img_batch, layer_no)
@@ -258,6 +259,9 @@ class DeepDream:
             imgs_plot.append(Image.fromarray(np.uint8(imgs * 255)))
         return imgs_plot
 
+    def gradcam(self, img_batch, iterations_n=25, lr=2.0, layer_no=0):
+
+        gradients = self.get_gradients(img_batch, layer_no)
 
 
 
