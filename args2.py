@@ -11,7 +11,7 @@ class Setup(object):
         parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
         parser.add_argument('--mode', type=str, default='train', help='Type of execution. [train|test]')
-        parser.add_argument('--gpu_id', type=int, default=0, help='id of gpu to train on. Note: Check if this GPU is free before using it')
+        parser.add_argument('--gpu_id', type=int, default=3, help='id of gpu to train on. Note: Check if this GPU is free before using it')
         parser.add_argument('--model_to_train', type=str, default='fmpn', help='["fmg" | "fmpn" | "resnet18" | "incv3" | "densenet | "vgg"]')
         parser.add_argument('--epochs', type=int, default=2, help="# of total epochs to train.")
         parser.add_argument('--pretrained', type=int, default=0, help="Loading the pretrained model (Default=0). [0, 1]. "

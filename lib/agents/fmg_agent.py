@@ -70,11 +70,11 @@ class FmgAgent(Agent):
     def __set_device__(self):
         if self.is_cuda:
             device = torch.device(self.args.gpu_id)
-            self.fmg.to(device)
+            self.fmg = self.fmg.to(device)
             torch.nn.DataParallel(self.loss, device_ids=[self.args.gpu_id])
         else:
             device = torch.device("cpu")
-            self.fmg.to(device)
+            self.fmg = self.fmg.to(device)
         return device
 
     def load_ckpt(self, file_name):

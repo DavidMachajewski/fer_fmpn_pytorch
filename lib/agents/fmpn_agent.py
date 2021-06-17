@@ -18,6 +18,7 @@ from lib.models.models import FacialMaskGenerator, PriorFusionNetwork, inception
 
 #################
 
+
 class FmpnAgent(Agent):
     def __init__(self, args):
         super(FmpnAgent, self).__init__(args)
@@ -36,9 +37,16 @@ class FmpnAgent(Agent):
         self.opt = self.__init_optimizer__()
 
         self.device = self.__set_device__()
-        self.fmg.to(self.device)
-        self.pfn.to(self.device)
-        self.cn.to(self.device)
+
+        self.fmg = self.fmg.to(self.device)
+        self.pfn = self.pfn.to(self.device)
+        self.cn = self.cn.to(self.device)
+
+        print("fmg, pnf, cn cuda? {0}, {1}, {2}".format(
+            next(self.fmg.parameters()).is_cuda,
+            next(self.pfn.parameters()).is_cuda,
+            next(self.cn.parameters()).is_cuda)
+        )
 
         self.train_dl, self.test_dl = get_ckp(args=self.args,
                                               batch_size=self.args.batch_size,
@@ -47,9 +55,6 @@ class FmpnAgent(Agent):
         self.loss_fmg_fn = nn.MSELoss()
         self.loss_cn_fn = nn.CrossEntropyLoss()
 
-        # self.device = self.__set_device__()
-
-        # self.opt = self.__init_optimizer__()
 
         self.list_train_loss_fmg = []
         self.list_train_loss_pfn = []
@@ -147,6 +152,7 @@ class FmpnAgent(Agent):
     def __set_device__(self):
         if self.is_cuda:
             device = torch.device(self.args.gpu_id)
+            print("GPU device: ", device)
         else:
             device = torch.device("cpu")
         return device

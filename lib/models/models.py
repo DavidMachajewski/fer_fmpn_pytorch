@@ -634,6 +634,9 @@ def inceptionv3(pretrained=False):
         state = {k: v for k, v in state_dict.items() if k in inc.state_dict()}
         inc.load_state_dict(state)
         print("Loaded ")
+        #
+        # :TODO: flexible number of classes! args.n_classes
+        #
         inc.fc = nn.Linear(2048, 7)
         to.nn.init.xavier_normal_(inc.fc.weight.data, gain=0.02)
         to.nn.init.constant_(inc.fc.bias.data, 0.0)
