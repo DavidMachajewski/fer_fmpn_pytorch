@@ -151,7 +151,7 @@ class FmpnAgent(Agent):
 
     def __set_device__(self):
         if self.is_cuda:
-            device = torch.device("gpu:{0}".format(self.args.gpu_id))
+            device = torch.device(self.args.gpu_id)
             print("GPU device: ", device)
         else:
             device = torch.device("cpu")
