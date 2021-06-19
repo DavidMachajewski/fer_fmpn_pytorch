@@ -37,10 +37,14 @@ class FmpnAgent(Agent):
         self.opt = self.__init_optimizer__()
 
         self.device = self.__set_device__()
+        torch.cuda.set_device(self.device)
 
-        self.fmg = self.fmg.to(self.device)
-        self.pfn = self.pfn.to(self.device)
-        self.cn = self.cn.to(self.device)
+        # self.fmg = self.fmg.to(self.device)
+        # self.pfn = self.pfn.to(self.device)
+        # self.cn = self.cn.to(self.device)
+        self.fmg = self.fmg.cuda()
+        self.pfn = self.pfn.to()
+        self.cn = self.cn.to()
 
         print("fmg, pnf, cn cuda? {0}, {1}, {2}".format(
             next(self.fmg.parameters()).is_cuda,
