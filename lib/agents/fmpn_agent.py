@@ -150,12 +150,10 @@ class FmpnAgent(Agent):
         return opt
 
     def __set_device__(self):
-        if self.is_cuda:
-            # device = torch.device(self.args.gpu_id)
-            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            print("GPU device: ", device)
-        else:
-            device = torch.device("cpu")
+        print("Set GPU device...")
+        # device = torch.device(self.args.gpu_id)
+        device = torch.device('cuda:%d' % self.args.gpu_id if torch.cuda.is_available() else 'cpu')
+        print("GPU device: ", device)
         return device
 
     def load_fmg(self, file_name_fmg):

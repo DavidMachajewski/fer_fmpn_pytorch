@@ -198,6 +198,7 @@ def visTensor(tensor, ch=0, allkernels=False, nrow=8, padding=1):
 if __name__ == '__main__':
     args = Setup().parse()
     """--- train networks ---"""
+    print(args.gpu_id)
     # comment "train mask generator" section
     runner = Runner(args)
     runner.start()
