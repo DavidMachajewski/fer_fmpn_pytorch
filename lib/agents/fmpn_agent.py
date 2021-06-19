@@ -43,8 +43,8 @@ class FmpnAgent(Agent):
         # self.pfn = self.pfn.to(self.device)
         # self.cn = self.cn.to(self.device)
         self.fmg = self.fmg.cuda()
-        self.pfn = self.pfn.to()
-        self.cn = self.cn.to()
+        self.pfn = self.pfn.cuda()
+        self.cn = self.cn.cuda()
 
         print("fmg, pnf, cn cuda? {0}, {1}, {2}".format(
             next(self.fmg.parameters()).is_cuda,
