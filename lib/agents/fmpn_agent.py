@@ -306,6 +306,7 @@ class FmpnAgent(Agent):
             self.save_resultlists_as_dict(self.train_logs_path)
 
     def train_epoch(self):
+        print("train epoch...")
         epoch_loss = 0.0
         epoch_fmg_loss = 0.0
         epoch_cn_loss = 0.0
