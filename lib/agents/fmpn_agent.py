@@ -255,57 +255,54 @@ class FmpnAgent(Agent):
 
     def train(self):
         print("start training loop...")
-        #with trange(self.tmp_epoch, self.args.epochs, desc="Epoch", unit="epoch") as epochs:
-        #    print("trange")
-        # for epoch in epochs:
-        for epoch in range(self.tmp_epoch, self.args.epochs):
-            print("epoch nr: ", epoch)
-            self.fmg.train()
-            self.pfn.train()
-            self.cn.train()
+        with trange(self.tmp_epoch, self.args.epochs, desc="Epoch", unit="epoch") as epochs:
+            for epoch in epochs:
+                #print("epoch nr: ", epoch)
+                self.fmg.train()
+                self.pfn.train()
+                self.cn.train()
 
-            self.tmp_epoch = epoch
-            self.epoch_counter += 1
+                self.tmp_epoch = epoch
+                self.epoch_counter += 1
 
-            # train one epoch
-            epoch_loss, epoch_acc, epoch_loss_fmg, epoch_loss_cn = self.train_epoch()
-            epoch_total_val_loss, epoch_val_acc, epoch_fmg_val_loss, epoch_cn_val_loss = self.eval_epoch()
+                # train one epoch
+                epoch_loss, epoch_acc, epoch_loss_fmg, epoch_loss_cn = self.train_epoch()
+                epoch_total_val_loss, epoch_val_acc, epoch_fmg_val_loss, epoch_cn_val_loss = self.eval_epoch()
 
-            # append training learning rates for fmg and cn and total
-            self.list_train_loss.append(epoch_loss)
-            self.list_train_loss_fmg.append(epoch_loss_fmg)
-            self.list_train_loss_cn.append(epoch_loss_cn)
+                # append training learning rates for fmg and cn and total
+                self.list_train_loss.append(epoch_loss)
+                self.list_train_loss_fmg.append(epoch_loss_fmg)
+                self.list_train_loss_cn.append(epoch_loss_cn)
 
-            self.list_lr_fmg.append(self.opt.param_groups[0]['lr'])
-            self.list_lr_pfn.append(self.opt.param_groups[1]['lr'])
-            self.list_lr_cn.append(self.opt.param_groups[2]['lr'])
+                self.list_lr_fmg.append(self.opt.param_groups[0]['lr'])
+                self.list_lr_pfn.append(self.opt.param_groups[1]['lr'])
+                self.list_lr_cn.append(self.opt.param_groups[2]['lr'])
 
-            self.list_train_acc.append(epoch_acc)
+                self.list_train_acc.append(epoch_acc)
 
-            # append testing results to arrays
-            self.list_test_loss.append(epoch_total_val_loss)
-            self.list_test_loss_fmg.append(epoch_fmg_val_loss)
-            self.list_test_loss_cn.append(epoch_cn_val_loss)
-            self.list_test_acc.append(epoch_val_acc)
+                # append testing results to arrays
+                self.list_test_loss.append(epoch_total_val_loss)
+                self.list_test_loss_fmg.append(epoch_fmg_val_loss)
+                self.list_test_loss_cn.append(epoch_cn_val_loss)
+                self.list_test_acc.append(epoch_val_acc)
 
-            self.__adjust_lr__()
-            """
-            epochs.set_postfix(loss="{:.3f}".format(epoch_loss, prec='.3'),
-                               accuracy="{:.3f}".format(epoch_acc.item(), prec='.3'),
-                               val_loss="{:.3f}".format(epoch_total_val_loss, prec='.3'),
-                               val_accuracy="{:.3f}".format(epoch_val_acc, prec='.3'),
-                               lr_fmg="{:.6f}".format(self.list_lr_fmg[-1], prec='.6'),
-                               lr_cn="{:.6f}".format(self.list_lr_cn[-1], prec='.6'))
-            """
+                self.__adjust_lr__()
 
-            if epoch % self.args.save_ckpt_intv == 0:
-                self.save_ckpt()
-                self.save_resultlists_as_dict(self.train_path + "/" + "epoch_" + str(epoch) + "_train_logs.pickle")
+                epochs.set_postfix(loss="{:.3f}".format(epoch_loss, prec='.3'),
+                                   accuracy="{:.3f}".format(epoch_acc.item(), prec='.3'),
+                                   val_loss="{:.3f}".format(epoch_total_val_loss, prec='.3'),
+                                   val_accuracy="{:.3f}".format(epoch_val_acc, prec='.3'),
+                                   lr_fmg="{:.6f}".format(self.list_lr_fmg[-1], prec='.6'),
+                                   lr_cn="{:.6f}".format(self.list_lr_cn[-1], prec='.6'))
 
-        # save last ckpt
-        self.save_ckpt()
-        self.train_logs_path = self.train_path + "end_train_logs.pickle"
-        self.save_resultlists_as_dict(self.train_logs_path)
+                if epoch % self.args.save_ckpt_intv == 0:
+                    self.save_ckpt()
+                    self.save_resultlists_as_dict(self.train_path + "/" + "epoch_" + str(epoch) + "_train_logs.pickle")
+
+            # save last ckpt
+            self.save_ckpt()
+            self.train_logs_path = self.train_path + "end_train_logs.pickle"
+            self.save_resultlists_as_dict(self.train_logs_path)
 
     def train_epoch(self):
         print("train epoch...")
