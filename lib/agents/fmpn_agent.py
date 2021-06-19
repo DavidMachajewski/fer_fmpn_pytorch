@@ -252,6 +252,7 @@ class FmpnAgent(Agent):
     def train(self):
         print("start training loop...")
         with trange(self.tmp_epoch, self.args.epochs, desc="Epoch", unit="epoch") as epochs:
+            print("trange")
             for epoch in epochs:
                 print("epoch nr: ", epoch)
                 self.fmg.train()
