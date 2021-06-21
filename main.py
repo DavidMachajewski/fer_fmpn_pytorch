@@ -94,15 +94,22 @@ def run_fmg_agent():
     args.start_lr_drop = 150
     args.model_to_train = "fmg"
     args.batch_size = 16
-    args.trainsplit = "train_ids_1.csv"
-    args.testsplit = "test_ids_1.csv"
+    # args.trainsplit = "train_ids_2.csv"
+    # args.testsplit = "test_ids_2.csv"
+
     # args.ckpt_to_load = "./results/run_fmg_2021-04-14_13-57-45/train_fmg_2021-04-14_13-57-45\ckpt/fmg_2021-04-14_13-57-45_epoch_299_ckpt.pth.tar"
     # args.ckpt_to_load = "./results/run_fmg_2021-05-20_10-45-40/train_fmg_2021-05-20_10-45-40/ckpt/fmg_2021-05-20_10-45-40_epoch_120_ckpt.pth.tar"
     # ./results/run_fmg_2021-05-20_10-45-40/train_fmg_2021-05-20_10-45-40/ckpt/fmg_2021-05-20_10-45-40_epoch_120_ckpt.pth.tar
     args.load_ckpt = 0
 
-    fmgagent = FmgAgent(args)
-    fmgagent.run()
+    for i in range(2,5):
+        args.trainsplit = "train_ids_{0}.csv".format(i)
+        args.testsplit = "test_ids_{0}.csv".format(i)
+        # print(args.trainsplit)
+        # print(args.testsplit)
+        fmgagent = FmgAgent(args)
+        fmgagent.run()
+
     #fmgagent.test("./results/run_fmg_2021-04-14_13-57-45/test_fmg_2021-04-14_13-57-45\plots/")
 
 
