@@ -155,7 +155,7 @@ class FmgAgent(Agent):
                 epochs.set_postfix(loss="{:.3f}".format(epoch_loss, prec='.3'),
                                    lr="{:.8f}".format(self.opt.param_groups[0]['lr'], prec='.8'))
 
-                if epoch % 30 == 0:
+                if epoch % self.args.save_ckpt_intv == 0:
                     self.save_ckpt()
                     self.save_resultlists_as_dict(self.train_path + "/" + "epoch_" + str(epoch) + "_train_logs.pickle")
 
