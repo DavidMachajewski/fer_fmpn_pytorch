@@ -288,10 +288,22 @@ class FmpnAgent(Agent):
 
                 self.__adjust_lr__()
 
+                # :TODO: set the max_acc so far if it is the case
+                #   save this epoch if it is the best so far
+                #   and the train accuracy is nearly 1.0
+                if self.max_acc < epoch_val_acc:
+                    self.max_acc = epoch_val_acc
+                    if epoch_acc > 0.9899:
+                        # save best tmp checkpoint
+                        print("Saving best checkpoint so far...")
+                        self.save_ckpt()
+                        self.save_resultlists_as_dict(self.train_path + "/" + "epoch_" + str(epoch) + "_train_logs.pickle")
+
                 epochs.set_postfix(loss="{:.3f}".format(epoch_loss, prec='.3'),
                                    accuracy="{:.3f}".format(epoch_acc.item(), prec='.3'),
                                    val_loss="{:.3f}".format(epoch_total_val_loss, prec='.3'),
                                    val_accuracy="{:.3f}".format(epoch_val_acc, prec='.3'),
+                                   val_acc_best="{:.3f}".format(self.max_acc, prec='.3'),
                                    lr_fmg="{:.6f}".format(self.list_lr_fmg[-1], prec='.6'),
                                    lr_cn="{:.6f}".format(self.list_lr_cn[-1], prec='.6'))
 

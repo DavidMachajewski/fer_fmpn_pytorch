@@ -18,6 +18,10 @@ class Agent:
         self.list_test_acc = []
         self.list_lr = []
 
+        # use it to save the best checkpoint so far
+        self.max_acc = -1
+        self.min_loss = 100000
+
     def save_args(self, path):
         with open(path, 'w') as f:
             json.dump(self.args.__dict__, f, indent=2)

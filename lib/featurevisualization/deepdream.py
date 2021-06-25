@@ -223,7 +223,6 @@ class DeepDream:
         loss = loss[0]
         # loss[0].backward()
         loss.backward()
-
         # print("gradient data of image")
         # print(img_batch.grad.data)
         return img_batch.grad.data
@@ -237,9 +236,7 @@ class DeepDream:
         :return:
         """
         print("start dreaming")
-
         img_batch = img_batch
-
         for i in range(iterations_n):
             print("Iteration no. {0}".format(i))
             gradients_batch = self.get_gradients(img_batch, layer_no)

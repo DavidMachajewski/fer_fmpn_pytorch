@@ -171,6 +171,8 @@ import PIL
 from lib.dataloader.datasets import AffectNetSubset
 from lib.dataloader.datasets import get_fer2013, get_affectnet
 from torchvision import utils
+import torch
+import torchvision
 
 def ferexample(args):
     train_dl, test_dl = get_fer2013(args)
@@ -202,6 +204,74 @@ def visTensor(tensor, ch=0, allkernels=False, nrow=8, padding=1):
     plt.imshow(grid.numpy().transpose((1, 2, 0)))
 
 
+def get_children(model: torch.nn.Module):
+    # source: https://stackoverflow.com/questions/54846905/pytorch-get-all-layers-of-model
+    # get children form model!
+    children = list(model.children())
+    flatt_children = []
+    if children == []:
+        # if model has no children; model is last child! :O
+        return model
+    else:
+        # look for children from children... to the last child!
+        for child in children:
+            try:
+                flatt_children.extend(get_children(child))
+            except TypeError:
+                flatt_children.append(get_children(child))
+    return flatt_children
+
+
+def vis_feature_maps(model:torch.nn.Module, img_batch):
+    # we need to extract all children of type Conv2d
+    no_of_layers = 0
+    conv_layers = []
+
+    children = list(dream.model.children())
+    children_types = []
+
+    for child in children:
+        # add class types of each layer to children_types
+        children_types.append(type(child))
+
+    # retrieve all childs of type layer Conv2d
+    retrieved_childs = get_children(dream.model)
+
+    # retrieved_childs = list(model.children())
+
+    conv2dchilds = [layer for layer in retrieved_childs if type(layer) == torch.nn.Conv2d]
+    # conv2dchilds = [layer for layer in retrieved_childs if type(layer) == torchvision.nn.]
+
+    print("retr. childs: ")
+    print(len(conv2dchilds))
+
+    results = [conv2dchilds[0](img_batch)]
+
+    for i in range(1, len(conv2dchilds[0:6])):
+        # :TODO:
+        # extrahiere auch die inception layer.
+        # Extrahieren wir nur die convolutional layer
+        # per rekursion aus allen modules, so stimmen die
+        # dimensionen nicht zwangsläufig.
+        results.append(conv2dchilds[i](results[-1]))
+
+    # plot layers
+    outputs = results
+    for n_layer in range(len(outputs)):
+        plt.figure(figsize=(40, 10))
+        layer_viz = outputs[n_layer][0, :, :, :]
+        print(np.shape(layer_viz))
+        layer_viz = layer_viz.data
+        print("Layer ", n_layer+1)
+        for i, filter in enumerate(layer_viz):
+            if i == 64:
+                break
+            plt.subplot(8, 8, i + 1)
+            plt.imshow(filter.cpu(), cmap='gray')
+            plt.axis("off")
+        plt.show()
+
+
 if __name__ == '__main__':
     args = Setup().parse()
     """--- (2) train network ---"""
@@ -220,13 +290,18 @@ if __name__ == '__main__':
 
 
     # --- run DeepDream algorithm ---
-"""
+
+
     # python main.py --deepdream_model "incv3" --pretrained 1 --load_ckpt 1 --ckpt_to_load "F:\trainings2\inceptionnet\pretrained\8\run_incv3_2021-05-10_19-26-32\train_incv3_2021-05-10_19-26-32\ckpt\incv3_epoch_199_ckpt.pth.tar" --dataset ckp --batch_size 2 --gpu_id 0
 
     # args.gpu_id = 0
-    dream = DeepDream(args)
-    batch = next(iter(dream.train_dl))
+    # args.gpu_id = 0
+    # dream = DeepDream(args)
+    # batch = next(iter(dream.train_dl))
 
+    # vis_feature_maps(dream.model, batch["image"].to(to.device('cuda:0')))
+
+    """
     img = batch["image"].to(to.device('cuda:0'))
     img.requires_grad = True
 
@@ -256,7 +331,6 @@ if __name__ == '__main__':
 
 
 """
-
 
 
 
