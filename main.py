@@ -224,6 +224,7 @@ def get_children(model: torch.nn.Module):
 
 def vis_feature_maps(model:torch.nn.Module, img_batch):
     # we need to extract all children of type Conv2d
+    # https://androidkt.com/how-to-visualize-feature-maps-in-convolutional-neural-networks-using-pytorch/
     no_of_layers = 0
     conv_layers = []
 
@@ -264,7 +265,7 @@ def vis_feature_maps(model:torch.nn.Module, img_batch):
         layer_viz = layer_viz.data
         print("Layer ", n_layer+1)
         for i, filter in enumerate(layer_viz):
-            if i == 64:
+            if i == 16:
                 break
             plt.subplot(8, 8, i + 1)
             plt.imshow(filter.cpu(), cmap='gray')
@@ -275,7 +276,7 @@ def vis_feature_maps(model:torch.nn.Module, img_batch):
 if __name__ == '__main__':
     args = Setup().parse()
     """--- (2) train network ---"""
-    print(args.gpu_id)
+    # print(args.gpu_id)
     # comment "train mask generator" section
     runner = Runner(args)
     runner.start()
@@ -295,11 +296,14 @@ if __name__ == '__main__':
     # python main.py --deepdream_model "incv3" --pretrained 1 --load_ckpt 1 --ckpt_to_load "F:\trainings2\inceptionnet\pretrained\8\run_incv3_2021-05-10_19-26-32\train_incv3_2021-05-10_19-26-32\ckpt\incv3_epoch_199_ckpt.pth.tar" --dataset ckp --batch_size 2 --gpu_id 0
 
     # args.gpu_id = 0
+
+    """visualize feature maps / activation maps"""
     # args.gpu_id = 0
     # dream = DeepDream(args)
     # batch = next(iter(dream.train_dl))
 
     # vis_feature_maps(dream.model, batch["image"].to(to.device('cuda:0')))
+
 
     """
     img = batch["image"].to(to.device('cuda:0'))

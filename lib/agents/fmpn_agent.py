@@ -1,12 +1,14 @@
 import torch
 import pickle
 import torch.nn as nn
+import numpy as np
 from tqdm import trange, tqdm
 from lib.utils import save_tensor_img
 from lib.agents.agent import Agent
 from lib.dataloader.datasets import get_ckp
 from lib.eval.eval_utils import make_cnfmat_plot, prec_recall_fscore, roc_auc_score
 from lib.models.models import FacialMaskGenerator, PriorFusionNetwork, inceptionv3
+
 
 #################
 # RUN WITH PRETRAINED InceptionNet as classification network
@@ -55,10 +57,10 @@ class FmpnAgent(Agent):
         self.train_dl, self.test_dl = get_ckp(args=self.args,
                                               batch_size=self.args.batch_size,
                                               shuffle=True,
-                                              num_workers=self.args.num_workers)
+                                              num_workers=self.args.num_workers,
+                                              drop_last=True)
         self.loss_fmg_fn = nn.MSELoss()
         self.loss_cn_fn = nn.CrossEntropyLoss()
-
 
         self.list_train_loss_fmg = []
         self.list_train_loss_pfn = []
@@ -112,7 +114,8 @@ class FmpnAgent(Agent):
         trained by a single run."""
         if self.args.scheduler_type == "linear_x":
             factor_cn = (self.args.lr_init - self.args.lr_end) / (self.args.epochs - self.args.start_lr_drop_fmpn)
-            factor_fmg = (self.args.lr_init_after - self.args.lr_end) / (self.args.epochs - self.args.start_lr_drop_fmpn)
+            factor_fmg = (self.args.lr_init_after - self.args.lr_end) / (
+                        self.args.epochs - self.args.start_lr_drop_fmpn)
 
             # print("adjusting factor cn: ", factor_cn)
             # print("adjusting factor fmg: ", factor_fmg)
@@ -257,7 +260,7 @@ class FmpnAgent(Agent):
         print("start training loop...")
         with trange(self.tmp_epoch, self.args.epochs, desc="Epoch", unit="epoch") as epochs:
             for epoch in epochs:
-                #print("epoch nr: ", epoch)
+                # print("epoch nr: ", epoch)
                 self.fmg.train()
                 self.pfn.train()
                 self.cn.train()
@@ -297,7 +300,8 @@ class FmpnAgent(Agent):
                         # save best tmp checkpoint
                         print("Saving best checkpoint so far...")
                         self.save_ckpt()
-                        self.save_resultlists_as_dict(self.train_path + "/" + "epoch_" + str(epoch) + "_train_logs.pickle")
+                        self.save_resultlists_as_dict(
+                            self.train_path + "/" + "epoch_" + str(epoch) + "_train_logs.pickle")
 
                 epochs.set_postfix(loss="{:.3f}".format(epoch_loss, prec='.3'),
                                    accuracy="{:.3f}".format(epoch_acc.item(), prec='.3'),
@@ -328,6 +332,8 @@ class FmpnAgent(Agent):
             images_gray = batch["image_gray"].to(self.device)
             label_masks = batch["mask"].to(self.device)
             labels = batch["label"].to(self.device)
+            paths = batch["img_path"]
+            print("Paths: ", paths)
 
             # print("img, img_gray, lbl, lbls cuda? {}, {}, {}, {}".format(
             #    images.is_cuda,
@@ -348,31 +354,38 @@ class FmpnAgent(Agent):
                 for idx in range(len(predicted_masks)):
                     save_tensor_img(img=images[idx].cpu().detach(),
                                     path=self.train_plots + "imgorg_"
-                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(self.tmp_epoch) + "_batch_" + str(i) + ".png")
+                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
+                                        self.tmp_epoch) + "_batch_" + str(i) + ".png")
 
                     save_tensor_img(img=predicted_masks[idx].cpu().detach(),
                                     path=self.train_plots + "pred_mask_"
-                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(self.tmp_epoch) + "_batch_" + str(i) + ".png")
+                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
+                                        self.tmp_epoch) + "_batch_" + str(i) + ".png")
 
                     save_tensor_img(img=images_gray[idx].cpu().detach(),
                                     path=self.train_plots + "gray_img_"
-                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(self.tmp_epoch) + "_batch_" + str(i) + ".png")
+                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
+                                        self.tmp_epoch) + "_batch_" + str(i) + ".png")
 
                     save_tensor_img(img=heat_face[idx].cpu().detach(),
                                     path=self.train_plots + "multiplied_img_"
-                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(self.tmp_epoch) + "_batch_" + str(i) + ".png")
+                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
+                                        self.tmp_epoch) + "_batch_" + str(i) + ".png")
 
                     save_tensor_img(img=imgorg_after_pfn_prep[idx].cpu().detach(),
                                     path=self.train_plots + "imgorg_pfn_prep_"
-                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(self.tmp_epoch) + "_batch_" + str(i) + ".png")
+                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
+                                        self.tmp_epoch) + "_batch_" + str(i) + ".png")
 
                     save_tensor_img(img=imgheat_after_pfn_prep[idx].cpu().detach(),
                                     path=self.train_plots + "multiplied_pfn_prep_"
-                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(self.tmp_epoch) + "_batch_" + str(i) + ".png")
+                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
+                                        self.tmp_epoch) + "_batch_" + str(i) + ".png")
 
                     save_tensor_img(img=fusion_img[idx].cpu().detach(),
                                     path=self.train_plots + "fusioned_img_"
-                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(self.tmp_epoch) + "_batch_" + str(i) + ".png")
+                                         + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
+                                        self.tmp_epoch) + "_batch_" + str(i) + ".png")
 
             classifications = self.cn(fusion_img)
 
@@ -410,7 +423,6 @@ class FmpnAgent(Agent):
         epoch_cn_val_loss = 0.0
         epoch_total_val_loss = 0.0
         epoch_val_acc = 0.0
-
 
         with torch.no_grad():
             for i, batch in enumerate(self.test_dl):  #
@@ -524,26 +536,32 @@ class FmpnAgent(Agent):
             # print("val_acc: ", epoch_val_acc)
             # print("val_loss: {0} \t val_accuracy: {1}".format(epoch_total_val_loss, epoch_val_acc))
 
-            make_cnfmat_plot(labels=all_labels,
-                             predictions=all_predictions,
-                             n_classes=self.args.n_classes,
-                             path=self.test_plots,
-                             gpu_device=self.args.gpu_id)
-            #
+            cnfmat = make_cnfmat_plot(labels=all_labels,
+                                      predictions=all_predictions,
+                                      n_classes=self.args.n_classes,
+                                      path=self.test_plots,
+                                      gpu_device=self.args.gpu_id)
+
+            # sum diagonal of cnf matrix and sum whole matrix
+            # then divide correctly predicted by all predictions
+            diag = np.trace(cnfmat)
+            all_preds = np.sum(cnfmat)
+            acc = diag/all_preds
             #
             # :TODO: calculate metrics here
             #
-            #
             # calculate precision recall fscore
             clf_report = prec_recall_fscore(y_true=all_labels.cpu(), y_pred=all_predictions.cpu())
-            roc_score = roc_auc_score(y_true=all_labels.cpu(), y_pred=all_predictions.cpu(), n_classes=self.args.n_classes)
+            roc_score = roc_auc_score(y_true=all_labels.cpu(), y_pred=all_predictions.cpu(),
+                                      n_classes=self.args.n_classes)
             # out_df.to_csv(self.test_plots + "clf_report.csv", index=False)
             out_dict = {
                 "precision": clf_report[0].round(2).tolist(),
                 "recall": clf_report[1].round(2).tolist(),
                 "f1": clf_report[2].round(2).tolist(),
                 "support": clf_report[3].tolist(),
-                "roc_auc_ovr": roc_score.tolist()
+                "roc_auc_ovr": roc_score.tolist(),
+                "test_acc": acc
             }
             with open(self.test_plots + "clf_report.txt", "w") as f:
                 print(out_dict, file=f)
@@ -551,33 +569,32 @@ class FmpnAgent(Agent):
             print(roc_score)
             return epoch_total_val_loss, epoch_val_acc
 
+            # creating confusion matrix now
+            #   print(all_predictions)
+            #   print(all_labels)
+            #   print("allpred: ", np.shape(all_predictions))
+            #   print("allpred: ", np.shape(all_labels))
+            #   stacked_pred_label = torch.stack((all_labels, all_predictions), dim=1)
+            #   print(stacked_pred_label.shape)
+            #   print(stacked_pred_label)
+            #   for pair in stacked_pred_label:
+            #       label, pred = pair.tolist()
+            #       cnfmat[int(label), int(pred)] = cnfmat[int(label), int(pred)] + 1
 
-                # creating confusion matrix now
-                #   print(all_predictions)
-                #   print(all_labels)
-                #   print("allpred: ", np.shape(all_predictions))
-                #   print("allpred: ", np.shape(all_labels))
-                #   stacked_pred_label = torch.stack((all_labels, all_predictions), dim=1)
-                #   print(stacked_pred_label.shape)
-                #   print(stacked_pred_label)
-                #   for pair in stacked_pred_label:
-                #       label, pred = pair.tolist()
-                #       cnfmat[int(label), int(pred)] = cnfmat[int(label), int(pred)] + 1
+            #   print(cnfmat)
+            # save confusion matrix to file
+            # path = "./results/run_fmpn_2021-04-16_00-40-16/train_fmpn_2021-04-16_00-40-16\plots/"
+            #   path = "./results/run_fmpn_2021-04-19_19-10-27/train_fmpn_2021-04-19_19-10-27\plots/"
+            #   np.savetxt(path + "cnfmat.txt", cnfmat.numpy())
+            #   cnfmat = cnfmat.detach().cpu().numpy()
+            #   cnfmatnorm = cnfmat.astype('float') / cnfmat.sum(axis=1)[:, np.newaxis]
+            #   cnfmat_df = pd.DataFrame(cnfmatnorm,
+            #                            index=["anger", "contempt", "disgust", "fear", "happy", "sadness", "surprise"],
+            #                            columns=["anger", "contempt", "disgust", "fear", "happy", "sadness",
+            #                                     "surprise"])
 
-                #   print(cnfmat)
-                # save confusion matrix to file
-                # path = "./results/run_fmpn_2021-04-16_00-40-16/train_fmpn_2021-04-16_00-40-16\plots/"
-                #   path = "./results/run_fmpn_2021-04-19_19-10-27/train_fmpn_2021-04-19_19-10-27\plots/"
-                #   np.savetxt(path + "cnfmat.txt", cnfmat.numpy())
-                #   cnfmat = cnfmat.detach().cpu().numpy()
-                #   cnfmatnorm = cnfmat.astype('float') / cnfmat.sum(axis=1)[:, np.newaxis]
-                #   cnfmat_df = pd.DataFrame(cnfmatnorm,
-                #                            index=["anger", "contempt", "disgust", "fear", "happy", "sadness", "surprise"],
-                #                            columns=["anger", "contempt", "disgust", "fear", "happy", "sadness",
-                #                                     "surprise"])
-
-                #   ax = sn.heatmap(cnfmat_df, annot=True, annot_kws={"size": 10}, fmt='.0%', cmap='Blues')
-                #   plt.title('Confusion matrix of FMPN predictions on the CK+ dataset', fontsize=12)
-                #   plt.yticks(rotation=0)
-                #   plt.savefig(path + "cnfmat_plot.png")
-                #   plt.show()
+            #   ax = sn.heatmap(cnfmat_df, annot=True, annot_kws={"size": 10}, fmt='.0%', cmap='Blues')
+            #   plt.title('Confusion matrix of FMPN predictions on the CK+ dataset', fontsize=12)
+            #   plt.yticks(rotation=0)
+            #   plt.savefig(path + "cnfmat_plot.png")
+            #   plt.show()

@@ -184,6 +184,7 @@ def make_cnfmat_plot(labels, predictions, n_classes, path, gpu_device, title="")
     plt.yticks(rotation=0)
     plt.savefig(path + "cnfmat_plot.png", bbox_inches='tight', dpi=500)
     plt.close()
+    return cnfmat
     # plt.show()
 
 
