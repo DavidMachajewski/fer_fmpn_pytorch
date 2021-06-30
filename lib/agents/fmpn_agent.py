@@ -332,8 +332,8 @@ class FmpnAgent(Agent):
             images_gray = batch["image_gray"].to(self.device)
             label_masks = batch["mask"].to(self.device)
             labels = batch["label"].to(self.device)
-            paths = batch["img_path"]
-            print("Paths: ", paths)
+            # paths = batch["img_path"]
+            # print("Paths: ", paths)
 
             # print("img, img_gray, lbl, lbls cuda? {}, {}, {}, {}".format(
             #    images.is_cuda,
