@@ -8,13 +8,14 @@ from sklearn import metrics
 from torch.nn.functional import one_hot
 
 
-def make_ds_distribution_plot(train_dl, test_dl, save_to, n_classes=7):
+def make_ds_distribution_plot(train_dl, test_dl, valid_dl, save_to, n_classes=7):
     fig, ax = plt.subplots()
     idx = np.arange(n_classes)
 
     # train count test count
     trc = [0]*n_classes
     tec = [0]*n_classes
+    vac = [0]*n_classes
 
     for i, batch in enumerate(train_dl):
         labels = batch['label']
@@ -26,12 +27,21 @@ def make_ds_distribution_plot(train_dl, test_dl, save_to, n_classes=7):
         for label in labels:
             tec[int(label)] += 1
 
-    train_bar = ax.bar(idx, trc, label='train')
-    test_bar = ax.bar(idx, tec, label='test')
+    for i, batch in enumerate(valid_dl):
+        labels = batch['label']
+        for label in labels:
+            vac[int(label)] += 1
+
+    train_bar = ax.bar(idx, trc, label='train', bottom=np.array(tec)+np.array(vac))
+    test_bar = ax.bar(idx, tec, label='test', bottom=np.array(vac))
+    valid_bar = ax.bar(idx, vac, label='valid')
+    # train_bar = ax.bar(idx, trc, label='train')
+    # test_bar = ax.bar(idx, tec, label='test')
+    # valid_bar = ax.bar(idx, vac, label='valid')
 
     # ax.axhline(0, color='grey', linewidth=0.8)
     ax.set_ylabel('number of samples')
-    ax.set_title('Size of train and test split per class')
+    ax.set_title('Size of train, test, valid split per class')
     ax.set_xticks(idx)
     ax.set_xticklabels(('anger', 'contempt', 'disgust',
                         'fear', 'happy', 'sadness', 'surprise'))
@@ -42,8 +52,9 @@ def make_ds_distribution_plot(train_dl, test_dl, save_to, n_classes=7):
     ax.spines['bottom'].set_visible(False)
     ax.xaxis.set_ticks_position('none')
 
-    ax.bar_label(test_bar, label_type='edge', fontsize=6)
-    ax.bar_label(train_bar, label_type='edge', fontsize=6)
+    ax.bar_label(test_bar, label_type='edge', fontsize=5)
+    ax.bar_label(train_bar, label_type='edge', fontsize=5)
+    ax.bar_label(valid_bar, label_type='edge', fontsize=5)
 
     plt.savefig(save_to + "data_dist.png", bbox_inches='tight', dpi=300)
     plt.close()

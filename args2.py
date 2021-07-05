@@ -43,7 +43,8 @@ class Setup(object):
 
         # path to datasets
         parser.add_argument('--trainsplit', type=str, default="train_ids_1.csv", help="[train_0.csv|train_1.csv|...|train_9.csv]")
-        parser.add_argument('--testsplit', type=str, default="test_ids_1.csv", help="[test_ids_0.csv|test_ids_9.csv|...|test_ids_9.csv]")
+        parser.add_argument('--testsplit', type=str, default="test_ids_1.csv", help="[test_ids_0.csv|test_ids_1.csv|...|test_ids_9.csv]")
+        parser.add_argument('--validsplit', type=str, default="valid_ids_1.csv", help="[valid_ids_0.csv|valid_ids_1.csv|...|valid_ids_9.csv]")
         parser.add_argument('--data_root', type=str, default="./datasets/", help="path to dataset folder")
         parser.add_argument('--ckp_images', type=str, default="./datasets/ckp/images_cropped/", help="path to ""cropped ckp images")
         parser.add_argument('--ckp_csvsplits', type=str, default="./datasets/ckp/tensplit/", help="path to ckp splits")

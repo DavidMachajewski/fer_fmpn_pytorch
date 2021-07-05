@@ -1,4 +1,8 @@
 """
+get lines of code in powershell
+Get-ChildItem -Filter "*.py" -Recurse | Get-Content | Measure-Object -line
+
+
 ####################################################################################################
 train Inception_v3 network on ck+
 training is done in 10 split so change trainsplit

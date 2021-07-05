@@ -10,17 +10,25 @@ import torchvision.transforms as transforms
 
 
 class DatasetBase(Dataset):
-    def __init__(self, args, train: bool):
+    def __init__(self, args, train: bool, valid: bool):
+        """
+        :param args:
+        :param train: 1 -> train, 0 -> test
+        :param valid:
+        """
         self.args = args
         self.train = train
+        self.valid = valid
         super(DatasetBase, self).__init__()
         self.data_root = self.args.data_root
         self.masks_path = self.args.masks
 
         if train:
             self.splitname = args.trainsplit
-        else:
+        elif not train and not valid:
             self.splitname = args.testsplit
+        elif valid:
+            self.splitname = args.validsplit
 
     def __len__(self):
         pass
@@ -46,8 +54,8 @@ class DatasetBase(Dataset):
 
     def __load_mask__(self, label):
         """Loading the facial mask corresponding to the label"""
-        if self.train:
-            idx = 10
+        if self.train or self.valid:
+            idx = 10  # index of fold nr. within the filename of splits
         else:
             idx = 9
         get_id = lambda id_name: self.splitname[idx]
@@ -77,8 +85,8 @@ class DatasetBase(Dataset):
 
 
 class CKP(DatasetBase):
-    def __init__(self, args, train, transform=None):
-        super(CKP, self).__init__(args, train=train)
+    def __init__(self, args, train, transform=None, valid=False):
+        super(CKP, self).__init__(args, train=train, valid=valid)
         self.args = args
         self.transform = transform
         self.images_path = args.ckp_images
@@ -205,7 +213,6 @@ class FER2013(DatasetBase):
         return sample
 
 
-
 class AffectNetSubset(DatasetBase):
     #
     # Check emotion categories for affect net
@@ -251,7 +258,7 @@ class AffectNetSubset(DatasetBase):
         return sample
 
 
-def get_ckp(args, batch_size=8, shuffle=True, num_workers=2, drop_last=False):
+def get_ckp(args, batch_size=8, shuffle=True, num_workers=2, drop_last=False, valid:bool=None):
     """Initialize ckp dataset and return train, test
     torch.utils.data.dataloader.DataLoader, already batched and shuffled."""
     # for loading the dataset set conditions for processing
@@ -274,8 +281,15 @@ def get_ckp(args, batch_size=8, shuffle=True, num_workers=2, drop_last=False):
                              batch_size=batch_size,
                              shuffle=shuffle,
                              num_workers=num_workers)
-
-    return train_loader, test_loader
+    if valid:
+        valid_ds = CKP(valid=True, train=False, args=args, transform=transforms_test)
+        valid_loader = DataLoader(dataset=valid_ds,
+                                  batch_size=batch_size,
+                                  shuffle=shuffle,
+                                  num_workers=num_workers)
+        return train_loader, test_loader, valid_loader
+    else:
+        return train_loader, test_loader
 
 
 def get_fer2013(args, batch_size=8, shuffle=True, num_workers=2, drop_last=False):
