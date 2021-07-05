@@ -107,7 +107,7 @@ def run_fmg_agent():
     # ./results/run_fmg_2021-05-20_10-45-40/train_fmg_2021-05-20_10-45-40/ckpt/fmg_2021-05-20_10-45-40_epoch_120_ckpt.pth.tar
     args.load_ckpt = 0
 
-    for i in range(0,10):
+    for i in range(1, 10):
         args.trainsplit = "train_ids_{0}.csv".format(i)
         args.testsplit = "test_ids_{0}.csv".format(i)
         # print(args.trainsplit)
@@ -279,8 +279,8 @@ def vis_feature_maps(model:torch.nn.Module, img_batch):
 
 
 if __name__ == '__main__':
-    args = Setup().parse()
     """--- (2) train network ---"""
+    # args = Setup().parse()
     # print(args.gpu_id)
     # comment "train mask generator" section
     # runner = Runner(args)
