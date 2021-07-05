@@ -98,6 +98,7 @@ def run_fmg_agent():
     args.start_lr_drop = 150
     args.model_to_train = "fmg"
     args.batch_size = 16
+    args.save_ckpt_intv = 150
     # args.trainsplit = "train_ids_2.csv"
     # args.testsplit = "test_ids_2.csv"
 
@@ -106,7 +107,7 @@ def run_fmg_agent():
     # ./results/run_fmg_2021-05-20_10-45-40/train_fmg_2021-05-20_10-45-40/ckpt/fmg_2021-05-20_10-45-40_epoch_120_ckpt.pth.tar
     args.load_ckpt = 0
 
-    for i in range(7,10):
+    for i in range(0,10):
         args.trainsplit = "train_ids_{0}.csv".format(i)
         args.testsplit = "test_ids_{0}.csv".format(i)
         # print(args.trainsplit)
@@ -282,12 +283,12 @@ if __name__ == '__main__':
     """--- (2) train network ---"""
     # print(args.gpu_id)
     # comment "train mask generator" section
-    runner = Runner(args)
-    runner.start()
+    # runner = Runner(args)
+    # runner.start()
 
     """--- (1) train mask generator ---"""
     # comment "train networks" section
-    # run_fmg_agent()
+    run_fmg_agent()
 
     #for image, label in next(iter(train_dl)):
     #    plt.imshow(image.permute(1,2,0))
