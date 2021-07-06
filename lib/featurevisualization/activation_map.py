@@ -29,7 +29,10 @@ Implementation
 
 """
 import torch
+import numpy as np
 import torch.nn.functional as F
+from lib.agents.fmpn_agent import FmpnAgent
+from lib.agents.runner import Runner
 
 
 class ModifyInceptionv3(torch.nn.Module):
@@ -48,9 +51,33 @@ class ModifyInceptionv3(torch.nn.Module):
 
 
 def get_modified_model(model, args):
-    """
-    :param model: for example the inception_v3 model
-    :return: modified model ...
-    """
+    """extract last last layer and modify e.g. inceptionNet"""
     extracted = torch.nn.Sequential(*list(model.children())[:-1])
     return torch.nn.Sequential(extracted, ModifyInceptionv3(2048, args))
+
+
+def init_class_activation_mapping(runner: Runner):
+    if runner.args.model_to_train == "fmpn":
+        # get classification netwok (pretrained inceptionNet in this case)
+        runner.model.cn = get_modified_model(runner.model.cn, runner.args)
+    return runner
+
+
+def create_class_activation_maps(agent: FmpnAgent, map_size=(256, 256)):
+    """restore the modified and trained model"""
+    n_classes = agent.args.n_classes
+
+    parameters = list(ModifyInceptionv3().parameters())
+    weights = np.squeeze(parameters[-1].data.numpy())
+
+
+
+
+
+
+
+
+
+
+
+

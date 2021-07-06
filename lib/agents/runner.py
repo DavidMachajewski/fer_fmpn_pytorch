@@ -7,6 +7,7 @@ import lib.eval.eval_utils as eval
 class Runner:
     def __init__(self, args):
         self.args = args
+        self.model = self.init()
 
     def init(self):
         if self.args.model_to_train == "incv3":
@@ -27,7 +28,7 @@ class Runner:
         return model
 
     def start(self):
-        model = self.init()
+        model = self.model
 
         if self.args.mode == "train":
             model.run()
