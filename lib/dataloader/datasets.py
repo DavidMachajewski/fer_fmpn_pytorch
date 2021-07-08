@@ -54,14 +54,10 @@ class DatasetBase(Dataset):
 
     def __load_mask__(self, label):
         """Loading the facial mask corresponding to the label"""
-        print("TRAIN: ", self.train)
-        print("TEST: ", self.valid)
         if self.train or self.valid:
             idx = 10  # index of fold nr. within the filename of splits
         else:
             idx = 9
-        print("CHOSEN IDX: ", idx)
-        print("SPLITNAME: ", self.splitname)
         get_id = lambda id_name: self.splitname[idx]
         path_to_masks = self.args.masks
 
