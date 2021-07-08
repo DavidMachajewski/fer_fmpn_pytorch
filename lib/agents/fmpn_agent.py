@@ -54,11 +54,12 @@ class FmpnAgent(Agent):
             next(self.cn.parameters()).is_cuda)
         )
 
-        self.train_dl, self.test_dl = get_ckp(args=self.args,
-                                              batch_size=self.args.batch_size,
-                                              shuffle=True,
-                                              num_workers=self.args.num_workers,
-                                              drop_last=True)
+        self.train_dl, self.test_dl, self.valid_dl = get_ckp(args=self.args,
+                                                            batch_size=self.args.batch_size,
+                                                            shuffle=True,
+                                                            num_workers=self.args.num_workers,
+                                                            drop_last=True,
+                                                            valid=True)
         self.loss_fmg_fn = nn.MSELoss()
         self.loss_cn_fn = nn.CrossEntropyLoss()
 

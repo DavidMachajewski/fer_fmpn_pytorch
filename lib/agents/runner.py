@@ -32,7 +32,7 @@ class Runner:
 
         if self.args.mode == "train":
             model.run()
-            eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl, save_to=model.train_plots)
+            eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl, save_to=model.train_plots, valid_dl=model.valid_dl)
             eval.make_loss_plot(path_to_dict=model.train_logs_path, save_to=model.train_plots)
             eval.make_acc_plot(path_to_dict=model.train_logs_path, save_to=model.train_plots)
             if self.args.model_to_train == "fmpn":
@@ -41,6 +41,9 @@ class Runner:
                 # eval.make_loss_plot(path_to_dict=model.train_logs_path, save_to=model.train_plots)
                 eval.make_lr_plot(path_to_dict=model.train_logs_path, save_to=model.train_plots)
             model.test()
+            #
+            # model.evaluate().....
+            #
         if self.args.mode == "test":
             """simple test loop if you want to load a ckpt and test it.
             Otherwise it is tested directly after training"""

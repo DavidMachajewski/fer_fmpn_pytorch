@@ -8,7 +8,7 @@ from sklearn import metrics
 from torch.nn.functional import one_hot
 
 
-def make_ds_distribution_plot(train_dl, test_dl, valid_dl, save_to, n_classes=7):
+def make_ds_distribution_plot(train_dl, test_dl, save_to, n_classes=7, valid_dl=None):
     fig, ax = plt.subplots()
     idx = np.arange(n_classes)
 
@@ -27,14 +27,16 @@ def make_ds_distribution_plot(train_dl, test_dl, valid_dl, save_to, n_classes=7)
         for label in labels:
             tec[int(label)] += 1
 
-    for i, batch in enumerate(valid_dl):
-        labels = batch['label']
-        for label in labels:
-            vac[int(label)] += 1
+    if valid_dl is not None:
+        for i, batch in enumerate(valid_dl):
+            labels = batch['label']
+            for label in labels:
+                vac[int(label)] += 1
 
     train_bar = ax.bar(idx, trc, label='train', bottom=np.array(tec)+np.array(vac))
     test_bar = ax.bar(idx, tec, label='test', bottom=np.array(vac))
-    valid_bar = ax.bar(idx, vac, label='valid')
+    if valid_dl is not None:
+        valid_bar = ax.bar(idx, vac, label='valid')
     # train_bar = ax.bar(idx, trc, label='train')
     # test_bar = ax.bar(idx, tec, label='test')
     # valid_bar = ax.bar(idx, vac, label='valid')
@@ -54,7 +56,8 @@ def make_ds_distribution_plot(train_dl, test_dl, valid_dl, save_to, n_classes=7)
 
     ax.bar_label(test_bar, label_type='edge', fontsize=5)
     ax.bar_label(train_bar, label_type='edge', fontsize=5)
-    ax.bar_label(valid_bar, label_type='edge', fontsize=5)
+    if valid_dl is not None:
+        ax.bar_label(valid_bar, label_type='edge', fontsize=5)
 
     plt.savefig(save_to + "data_dist.png", bbox_inches='tight', dpi=300)
     plt.close()
