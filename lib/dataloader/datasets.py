@@ -54,10 +54,14 @@ class DatasetBase(Dataset):
 
     def __load_mask__(self, label):
         """Loading the facial mask corresponding to the label"""
+        print("TRAIN: ", self.train)
+        print("TEST: ", self.valid)
         if self.train or self.valid:
             idx = 10  # index of fold nr. within the filename of splits
         else:
             idx = 9
+        print("CHOSEN IDX: ", idx)
+        print("SPLITNAME: ", self.splitname)
         get_id = lambda id_name: self.splitname[idx]
         path_to_masks = self.args.masks
 
@@ -266,6 +270,8 @@ def get_ckp(args, batch_size=8, shuffle=True, num_workers=2, drop_last=False, va
     #   RandomCrop: True, False
     #   RandomFlip: True, False
     #   Normalization: True, False
+    if valid is None:
+        valid = False
     transforms = tv.transforms.Compose([RandomCrop(args), ToTensor(), RandomFlip(), Normalization(args)])
     transforms_test = tv.transforms.Compose([ToTensor(), Normalization(args)])
     train_ds = CKP(train=True, args=args, transform=transforms)

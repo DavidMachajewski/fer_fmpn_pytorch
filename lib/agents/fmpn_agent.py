@@ -474,6 +474,27 @@ class FmpnAgent(Agent):
         # print("Classes after argmax: \n", classes)
         return torch.mean((classes == labels).float())
 
+    def inference(self, batch):
+        self.fmg.eval()
+        self.pfn.eval()
+        self.cn.eval()
+
+        images = batch["image"].to(self.device)
+        images_gray = batch["image_gray"].to(self.device)
+        label_masks = batch["mask"].to(self.device)
+        labels = batch["label"].to(self.device)
+
+        predicted_masks = self.fmg(images_gray).to(self.device)
+        heat_face = images_gray * predicted_masks
+        heat_face.to(self.device)
+        fusion_img, a, b = self.pfn(images, heat_face)
+        classifications = self.cn(fusion_img)
+        # print("classifications: ", classifications)
+        # print("classification shape:", np.shape(classifications))
+        classification_prob = torch.softmax(classifications, dim=-1)
+
+        return classification_prob, labels
+
     def test(self):
         print("testing...")
         self.fmg.eval()

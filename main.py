@@ -19,8 +19,9 @@ from args2 import Setup
 from torch import nn
 import torch.optim as optim
 import torch as to
-
+from lib.agents.fmpn_agent import FmpnAgent
 from lib.agents.fmg_agent import FmgAgent
+from lib.featurevisualization.activation_map import CAMCreator
 
 """
 def resnet_train(model, dataloader):
@@ -280,15 +281,15 @@ def vis_feature_maps(model:torch.nn.Module, img_batch):
 
 if __name__ == '__main__':
     """--- (2) train network ---"""
-    # args = Setup().parse()
+    args = Setup().parse()
     # print(args.gpu_id)
     # comment "train mask generator" section
-    # runner = Runner(args)
-    # runner.start()
+    runner = Runner(args)
+    runner.start()
 
     """--- (1) train mask generator ---"""
     # comment "train networks" section
-    run_fmg_agent()
+    # run_fmg_agent()
 
     #for image, label in next(iter(train_dl)):
     #    plt.imshow(image.permute(1,2,0))
@@ -301,6 +302,36 @@ if __name__ == '__main__':
     # python main.py --deepdream_model "incv3" --pretrained 1 --load_ckpt 1 --ckpt_to_load "F:\trainings2\inceptionnet\pretrained\8\run_incv3_2021-05-10_19-26-32\train_incv3_2021-05-10_19-26-32\ckpt\incv3_epoch_199_ckpt.pth.tar" --dataset ckp --batch_size 2 --gpu_id 0
 
     # args.gpu_id = 0
+    """class activation maps with CAMCreator"""
+    """
+    args = Setup().parse()
+    #
+    # reload fmpn model!
+    # args.load_ckpt = 1
+    # args.ckpt_fmg
+    # args.ckpt_cn
+    # args.ckpt_pfn
+    # dataset fold nr.
+    #
+    args.model_to_train = "fmpn"
+    args.mode = "test"
+    args.gpu_id = 0
+    args.trainsplit = "test_ids_0.csv"
+    args.testsplit = "test_ids_0.csv"
+    args.load_ckpt = 1
+    args.batch_size = 8
+    args.fmpn_cn_pretrained = 1
+    args.ckpt_fmg = "F:/trainings2/fmpn\pretrained/0/run_fmpn_2021-06-23_12-28-57/train_fmpn_2021-06-23_12-28-57\ckpt/fmpn_fmg_2021-06-23_12-28-57_epoch_499_ckpt.pth.tar"
+    args.ckpt_pfn = "F:/trainings2/fmpn\pretrained/0/run_fmpn_2021-06-23_12-28-57/train_fmpn_2021-06-23_12-28-57\ckpt/fmpn_pfn_2021-06-23_12-28-57_epoch_499_ckpt.pth.tar"
+    args.ckpt_cn = "F:/trainings2/fmpn\pretrained/0/run_fmpn_2021-06-23_12-28-57/train_fmpn_2021-06-23_12-28-57\ckpt/fmpn_cn_2021-06-23_12-28-57_epoch_499_ckpt.pth.tar"
+
+    fmpn_agent = FmpnAgent(args)
+    cam = CAMCreator(fmpn_agent)
+
+    batch = next(iter(fmpn_agent.test_dl))
+    print(batch)
+    cam.build_map(batch)
+    """
 
     """visualize feature maps / activation maps"""
     # args.gpu_id = 0

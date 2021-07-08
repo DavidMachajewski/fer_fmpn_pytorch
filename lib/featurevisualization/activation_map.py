@@ -72,6 +72,42 @@ def create_class_activation_maps(agent: FmpnAgent, map_size=(256, 256)):
 
 
 
+class CAMCreator:
+    def __init__(self, model: FmpnAgent):
+        self.model = model
+        self.init()
+        self.activation = []
+
+    def init(self):
+        self.parameters = list(self.model.cn.fc.parameters())
+        self.weights = self.model.cn.fc.weight  # parameters[0] shape (7, 2048)
+        # print(self.model.cn.Mixed_7c.branch_pool)
+        self.hook_activation(self.model.cn.Mixed_7c)
+        self.model.cn.Mixed_7c.register_forward_hook(self.hook_activation(self.model.cn.Mixed_7c))
+        self.test_dl = self.model.test_dl
+
+    def hook_activation(self, module):
+        def hook(module, input, output):
+            # self.activation[name] = output
+            self.activation.append(output)
+        return hook
+
+    def build_map(self, batch):
+        """
+        :param batch: batch of test_dl
+        :return:
+        """
+        probabilities, labels = self.model.inference(batch)
+        probabilities = torch.argmax(probabilities, 1)
+        print("predictions: \n", probabilities)
+        print("labels: ", labels)
+        print("weights: ", np.shape(self.weights))
+        print("feat: \n", self.activation[0].shape)
+
+
+
+
+
 
 
 
