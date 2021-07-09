@@ -281,11 +281,11 @@ def vis_feature_maps(model:torch.nn.Module, img_batch):
 
 if __name__ == '__main__':
     """--- (2) train network ---"""
-    args = Setup().parse()
+    # args = Setup().parse()
     # print(args.gpu_id)
     # comment "train mask generator" section
-    runner = Runner(args)
-    runner.start()
+    # runner = Runner(args)
+    # runner.start()
 
     """--- (1) train mask generator ---"""
     # comment "train networks" section
@@ -303,7 +303,7 @@ if __name__ == '__main__':
 
     # args.gpu_id = 0
     """class activation maps with CAMCreator"""
-    """
+
     args = Setup().parse()
     #
     # reload fmpn model!
@@ -319,19 +319,20 @@ if __name__ == '__main__':
     args.trainsplit = "test_ids_0.csv"
     args.testsplit = "test_ids_0.csv"
     args.load_ckpt = 1
-    args.batch_size = 8
+    args.batch_size = 16
     args.fmpn_cn_pretrained = 1
     args.ckpt_fmg = "F:/trainings2/fmpn\pretrained/0/run_fmpn_2021-06-23_12-28-57/train_fmpn_2021-06-23_12-28-57\ckpt/fmpn_fmg_2021-06-23_12-28-57_epoch_499_ckpt.pth.tar"
     args.ckpt_pfn = "F:/trainings2/fmpn\pretrained/0/run_fmpn_2021-06-23_12-28-57/train_fmpn_2021-06-23_12-28-57\ckpt/fmpn_pfn_2021-06-23_12-28-57_epoch_499_ckpt.pth.tar"
     args.ckpt_cn = "F:/trainings2/fmpn\pretrained/0/run_fmpn_2021-06-23_12-28-57/train_fmpn_2021-06-23_12-28-57\ckpt/fmpn_cn_2021-06-23_12-28-57_epoch_499_ckpt.pth.tar"
 
     fmpn_agent = FmpnAgent(args)
+
     cam = CAMCreator(fmpn_agent)
 
     batch = next(iter(fmpn_agent.test_dl))
-    print(batch)
-    cam.build_map(batch)
-    """
+        # print(batch)
+
+    cam.build_map(batch, 0)
 
     """visualize feature maps / activation maps"""
     # args.gpu_id = 0
