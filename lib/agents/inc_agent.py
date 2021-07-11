@@ -1,4 +1,6 @@
 import pickle
+
+import numpy as np
 import torch
 import pandas as pd
 from tqdm import tqdm, trange
@@ -6,7 +8,7 @@ from lib.models.models import get_ckp
 from lib.dataloader.datasets import get_fer2013
 from lib.agents.agent import Agent
 from lib.models.models import inceptionv3
-from lib.eval.eval_utils import make_cnfmat_plot, prec_recall_fscore
+from lib.eval.eval_utils import make_cnfmat_plot, prec_recall_fscore, roc_auc_score
 
 
 #
@@ -25,11 +27,12 @@ class InceptionAgent(Agent):
         self.epoch_counter = 0
 
         if self.args.dataset == "ckp":
-            self.train_dl, self.test_dl = get_ckp(args=self.args,
-                                                  batch_size=self.args.batch_size,
-                                                  shuffle=True,
-                                                  num_workers=self.args.num_workers,
-                                                  drop_last=True)
+            self.train_dl, self.test_dl, self.valid_dl = get_ckp(args=self.args,
+                                                                 batch_size=self.args.batch_size,
+                                                                 shuffle=True,
+                                                                 num_workers=self.args.num_workers,
+                                                                 drop_last=True,
+                                                                 valid=True)
             print("Loaded ckp dataset.")
         elif self.args.dataset == "fer":
             self.train_dl, self.test_dl = get_fer2013(args=self.args,
@@ -122,6 +125,14 @@ class InceptionAgent(Agent):
                 self.list_lr.append(self.opt.param_groups[0]['lr'])
 
                 self.__adjust_lr__()
+
+                if self.max_acc < test_acc:
+                    self.max_acc = test_acc
+                    if test_acc > 0.9899:
+                        print("Saving best checkpoint so far...")
+                        self.save_ckpt()
+                        self.save_resultlists_as_dict(
+                            self.train_path + "/" + "epoch_" + str(epoch) + "_train_logs.pickle")
 
                 epochs.set_postfix(loss="{:.3f}".format(train_loss, prec='.3'),
                                    acc="{:.3f}".format(train_acc, prec='.3'),
@@ -222,27 +233,43 @@ class InceptionAgent(Agent):
             epoch_val_acc = epoch_val_acc / len(self.test_dl)
 
             # create heatplot from confusion matrix
-            make_cnfmat_plot(labels=all_labels,
-                             predictions=all_predictions,
-                             n_classes=self.args.n_classes,
-                             path=self.test_plots,
-                             gpu_device=self.args.gpu_id)
+            cnfmat = make_cnfmat_plot(labels=all_labels,
+                                      predictions=all_predictions,
+                                      n_classes=self.args.n_classes,
+                                      path=self.test_plots,
+                                      gpu_device=self.args.gpu_id)
+
+            diag = np.trace(cnfmat)
+            all_preds = np.sum(cnfmat)
+            acc = diag/all_preds  # test acc
 
             # calculate precision recall fscore
-            clf_report = prec_recall_fscore(y_true=all_labels, y_pred=all_predictions)
+            clf_report = prec_recall_fscore(y_true=all_labels.cpu(), y_pred=all_predictions.cpu())
+            roc_score = roc_auc_score(y_true=all_labels.cpu(), y_pred=all_predictions.cpu(),
+                                      n_classes=self.args.n_classes)
+
             out_dict = {
                 "precision": clf_report[0].round(2),
                 "recall": clf_report[1].round(2),
                 "f1": clf_report[2].round(2),
-                "support": clf_report[3]
+                "support": clf_report[3],
+                "roc_auc_ovr": roc_score.tolist(),
+                "test_acc": acc
             }
-            out_df = pd.DataFrame(out_dict, index=self.args.n_classes)
-            avg_tot = (
-                out_df.apply(lambda x: round(x.mean(), 2) if x.name != "support" else round(x.sum(), 2)).to_frame().T)
-            avg_tot.index = ["avg/total"]
-            out_df = out_df.append(avg_tot)
+            # out_df = pd.DataFrame(out_dict, index=self.args.n_classes)
+            # avg_tot = (
+            #     out_df.apply(lambda x: round(x.mean(), 2) if x.name != "support" else round(x.sum(), 2)).to_frame().T)
+            # avg_tot.index = ["avg/total"]
+            # out_df = out_df.append(avg_tot)
             # save to file
-            out_df.to_csv(self.test_plots + "clf_report.csv", index=False)
+            # out_df.to_csv(self.test_plots + "clf_report.csv", index=False)
+
+            with open(self.test_plots + "clf_report.txt", "w") as f:
+                print(out_dict, file=f)
+
+            print(out_dict)
+            print(roc_score)
+
             return epoch_val_loss, epoch_val_acc
 
     def run(self):

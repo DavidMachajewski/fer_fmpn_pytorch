@@ -281,11 +281,11 @@ def vis_feature_maps(model:torch.nn.Module, img_batch):
 
 if __name__ == '__main__':
     """--- (2) train network ---"""
-    # args = Setup().parse()
+    args = Setup().parse()
     # print(args.gpu_id)
     # comment "train mask generator" section
-    # runner = Runner(args)
-    # runner.start()
+    runner = Runner(args)
+    runner.start()
 
     """--- (1) train mask generator ---"""
     # comment "train networks" section
@@ -304,6 +304,7 @@ if __name__ == '__main__':
     # args.gpu_id = 0
     """class activation maps with CAMCreator"""
 
+    """
     args = Setup().parse()
     #
     # reload fmpn model!
@@ -333,6 +334,8 @@ if __name__ == '__main__':
         # print(batch)
 
     cam.build_map(batch, 0)
+    """
+
 
     """visualize feature maps / activation maps"""
     # args.gpu_id = 0
