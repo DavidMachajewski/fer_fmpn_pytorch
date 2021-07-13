@@ -108,7 +108,7 @@ def run_fmg_agent():
     # ./results/run_fmg_2021-05-20_10-45-40/train_fmg_2021-05-20_10-45-40/ckpt/fmg_2021-05-20_10-45-40_epoch_120_ckpt.pth.tar
     args.load_ckpt = 0
 
-    for i in range(0, 3):
+    for i in range(3, 6):
         args.trainsplit = "train_ids_{0}.csv".format(i)
         args.testsplit = "test_ids_{0}.csv".format(i)
         args.validsplit = "valid_ids_{0}.csv".format(i)
