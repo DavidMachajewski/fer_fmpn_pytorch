@@ -282,15 +282,15 @@ def vis_feature_maps(model:torch.nn.Module, img_batch):
 
 if __name__ == '__main__':
     """--- (2) train network ---"""
-    # args = Setup().parse()
+    args = Setup().parse()
     # print(args.gpu_id)
     # comment "train mask generator" section
-    # runner = Runner(args)
-    # runner.start()
+    runner = Runner(args)
+    runner.start()
 
     """--- (1) train mask generator ---"""
     # comment "train networks" section
-    run_fmg_agent()
+    # run_fmg_agent()
 
     #for image, label in next(iter(train_dl)):
     #    plt.imshow(image.permute(1,2,0))

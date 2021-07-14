@@ -494,7 +494,7 @@ class FmpnAgent(Agent):
         # print("classification shape:", np.shape(classifications))
         classification_prob = torch.softmax(classifications, dim=-1)
 
-        return classification_prob, labels
+        return classification_prob, labels, fusion_img
 
     def test(self):
         print("testing...")
