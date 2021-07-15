@@ -23,24 +23,28 @@ import matplotlib.pyplot as plt
 
 
 class FERUtils():
-    def __init__(self, args):
+    def __init__(self, args, remove_label = None):
         self.args = args
         self.dataset = None
         self.train = None
         self.test = None
         self.val = None
-        self.__load_csv__(args)
+        self.__load_csv__(args, remove_label)
 
-    def __load_csv__(self, args):
+    def __load_csv__(self, args, remove_label = None):
         self.dataset = pd.read_csv(args.fer_images)
+        if isinstance(remove_label, int):
+            self.dataset = self.dataset[self.dataset["emotion"] != remove_label]
         self.train = self.dataset.loc[self.dataset['Usage'] == "Training"]
         self.test = self.dataset.loc[self.dataset['Usage'] == "PublicTest"]
         self.val = self.dataset.loc[self.dataset['Usage'] == "PrivateTest"]
 
     def save_to_csv(self):
+        # first we try without cross validation
         train_filename = "train_ids_0.csv"
         test_filename = "test_ids_0.csv"
         val_filename = "val_ids_0.csv"
+
         self.train.to_csv(self.args.fer + train_filename, index=False)
         self.test.to_csv(self.args.fer + test_filename, index=False)
         self.val.to_csv(self.args.fer + val_filename, index=False)
@@ -166,7 +170,9 @@ if __name__ == '__main__':
     args = Setup().parse()
     args.fer_images = "../../datasets/fer/fer2013.csv"
     args.fer = "../../datasets/fer/"
+    # create fer dataset but remove label neutral
     fer = FERUtils(args)
+    # fer.save_to_csv()
 
     # data = fer.dataset.values
     # print(fer.dataset['Usage'].value_counts())

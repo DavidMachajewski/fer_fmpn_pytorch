@@ -35,8 +35,7 @@ class BuildingBlock(nn.Module):
         self.stdnum_channels = 64
         self.padding = padding
         self.convx_1 = nn.Conv2d(self.inp_filters, self.out_filters, self.kernel, self.stride, self.padding, bias=False)
-        self.convx_2 = nn.Conv2d(self.out_filters, self.out_filters, self.kernel, self.std_stride, self.padding,
-                                 bias=False)
+        self.convx_2 = nn.Conv2d(self.out_filters, self.out_filters, self.kernel, self.std_stride, self.padding, bias=False)
         self.bn_1 = nn.BatchNorm2d(self.out_filters)
         self.bn_2 = nn.BatchNorm2d(self.out_filters)
         self.downsample = nn.Conv2d(self.inp_filters, self.out_filters, stride=self.stride, kernel_size=1)
@@ -623,7 +622,7 @@ def vgg19(pretrained=False):
     return vgg
 
 
-def inceptionv3(pretrained=False):
+def inceptionv3(pretrained=False, n_classes=7):
     """Input size for inception net is (3. 229, 299) """
     if pretrained:
         print("Loading pretrained model...")
@@ -637,13 +636,13 @@ def inceptionv3(pretrained=False):
         #
         # :TODO: flexible number of classes! args.n_classes
         #
-        inc.fc = nn.Linear(2048, 7)
+        inc.fc = nn.Linear(in_features=2048, out_features=n_classes)
         to.nn.init.xavier_normal_(inc.fc.weight.data, gain=0.02)
         to.nn.init.constant_(inc.fc.bias.data, 0.0)
     else:
         print("Loading non pretrained model...")
-        inc = tv.models.Inception3(num_classes=7)
-        inc.fc = nn.Linear(2048, 7)
+        inc = tv.models.Inception3(num_classes=n_classes)
+        inc.fc = nn.Linear(in_features=2048, out_features=n_classes)
     return inc
 
 

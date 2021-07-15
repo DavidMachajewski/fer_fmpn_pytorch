@@ -13,9 +13,9 @@ def make_ds_distribution_plot(train_dl, test_dl, save_to, n_classes=7, valid_dl=
     idx = np.arange(n_classes)
 
     # train count test count
-    trc = [0]*n_classes
-    tec = [0]*n_classes
-    vac = [0]*n_classes
+    trc = [0] * n_classes
+    tec = [0] * n_classes
+    vac = [0] * n_classes
 
     for i, batch in enumerate(train_dl):
         labels = batch['label']
@@ -33,7 +33,7 @@ def make_ds_distribution_plot(train_dl, test_dl, save_to, n_classes=7, valid_dl=
             for label in labels:
                 vac[int(label)] += 1
 
-    train_bar = ax.bar(idx, trc, label='train', bottom=np.array(tec)+np.array(vac))
+    train_bar = ax.bar(idx, trc, label='train', bottom=np.array(tec) + np.array(vac))
     test_bar = ax.bar(idx, tec, label='test', bottom=np.array(vac))
     if valid_dl is not None:
         valid_bar = ax.bar(idx, vac, label='valid')
@@ -158,7 +158,7 @@ def make_lr_plot_fmpn(path_to_dict, save_to):
     plt.close()
 
 
-def make_cnfmat_plot(labels, predictions, n_classes, path, gpu_device, title=""):
+def make_cnfmat_plot(labels, predictions, n_classes, path, gpu_device, title="", dataset="ckp", classnames=None):
     """
     :param labels: torch.tensor of true labels/targets
     :param predictions: torch.tensor of predictions
@@ -188,9 +188,16 @@ def make_cnfmat_plot(labels, predictions, n_classes, path, gpu_device, title="")
     #     # if a class is not in the test set it would lead to division by zero
     #     cnfmat_sum = 1
     cnfmatnorm = cnfmat.astype('float') / cnfmat_sum
-    cnfmat_df = pd.DataFrame(cnfmatnorm,
-                             index=["anger", "contempt", "disgust", "fear", "happy", "sadness", "surprise"],
-                             columns=["anger", "contempt", "disgust", "fear", "happy", "sadness", "surprise"])
+
+    if dataset == "ckp":
+        cnfmat_df = pd.DataFrame(cnfmatnorm,
+                                 index=["anger", "contempt", "disgust", "fear", "happy", "sadness", "surprise"],
+                                 columns=["anger", "contempt", "disgust", "fear", "happy", "sadness", "surprise"])
+    elif dataset == "fer" and classnames is not None:
+        cnfmat_df = pd.DataFrame(cnfmatnorm,
+                                 index=classnames,
+                                 columns=classnames)
+
     ax = sn.heatmap(cnfmat_df, annot=True, annot_kws={"size": 10}, linewidths=5, fmt='.0%', cmap='Blues')
     plt.title(title, fontsize=12)
     plt.xlabel('prediction')

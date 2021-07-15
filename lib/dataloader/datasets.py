@@ -85,6 +85,27 @@ class DatasetBase(Dataset):
 
 
 class CKP(DatasetBase):
+    """
+    self.classes = {
+            "1": "anger",
+            "2": "contempt",
+            "3": "disgust",
+            "4": "fear",
+            "5": "happiness",
+            "6": "sadness",
+            "7": "surprise"
+        }
+
+    the dataloader reduces by 1 so the labels are
+    0: anger
+    1: contempt
+    2: disgust
+    3: fear
+    4: happiness
+    5: sadness
+    6: surprise
+    """
+
     def __init__(self, args, train, transform=None, valid=False):
         super(CKP, self).__init__(args, train=train, valid=valid)
         self.args = args
@@ -140,22 +161,50 @@ class CKP(DatasetBase):
 
 
 class FER2013(DatasetBase):
-    def __init__(self, args, train: bool, transform=None):
+    """
+    ferlabels
+
+    0: "anger",
+    1: "disgust",
+    2: "fear",
+    3: "happiness",
+    4: "sadness",
+    5: "surprise",
+    6: "neutral"
+
+    ckplabels
+    0: anger
+    1: contempt
+    2: disgust
+    3: fear
+    4: happiness
+    5: sadness
+    6: surprise
+
+    fer to ckp
+    0 -> 0 : anger
+    1 -> 2 : disgust
+    2 -> 3 : fear
+    3 -> 4 : happiness
+    4 -> 5 : sadness
+    5 -> 6 : surprise
+    6 -> -1: not available ( rausnehmen aus dem Datenset )
+    """
+
+    def __init__(self, args, train: bool, transform=None, valid=False, ckp_label_type=False):
         self.train = train
         self.transform = transform
-        super(FER2013, self).__init__(args, train=train)
-        if train:
-            self.splitname = args.trainsplit
-        else:
-            self.splitname = args.testsplit
+        super(FER2013, self).__init__(args, train=train, valid=valid)
         self.data = None
+        self.ckp_label_type = ckp_label_type
         self.__load_file__()
 
     def __load_file__(self):
         path = self.args.fer + self.splitname
+        print("Loading {0} from {1}".format(self.splitname, path))
         self.data = pd.read_csv(path)
 
-    def covert_emotion_labels(self):
+    def covert_emotion_label(self, idx):
         pass
 
     def get_img_as_2d_array(self, pixels):
@@ -168,10 +217,12 @@ class FER2013(DatasetBase):
                 image[idx, idy] = int(p[idy])
         return image.reshape((48, 48))
 
-    def convert_label(self, label):
+    def convert_label(self, fer_label):
         """convert fer label to ck+ label type
-        to load the correct mask"""
-        labels = []
+        to load the correct mask or make it more compareable at least"""
+        # fer in ckp form anger, disgust, fear, happiness, sadness, surprise
+        ckplabels = [0, 2, 3, 4, 5, 6]
+        return ckplabels[fer_label]
 
     def __len__(self):
         return len(self.data)
@@ -181,32 +232,31 @@ class FER2013(DatasetBase):
 
         pixels = self.data.iloc[[idx]]["pixels"].values
 
-        img = self.get_img_as_2d_array(pixels)
+        img_gray = self.get_img_as_2d_array(pixels)
         # img = np.expand_dims(img, axis=-1)
         # img = img * 1./255.
-        img = cv.normalize(img, None, alpha=0, beta=1, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
-        img = cv.cvtColor(img, cv.COLOR_GRAY2RGB)
-        img = cv.resize(img, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC )
+        img_gray = cv.normalize(img_gray, None, alpha=0, beta=1, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
+        img = cv.cvtColor(img_gray, cv.COLOR_GRAY2RGB)
+        img_gray = cv.resize(img_gray, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
+        img = cv.resize(img, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
+        img_gray = np.expand_dims(img_gray, axis=-1)  # (W;H;1)
 
-        # img_gray = img
-        # img_gray = np.expand_dims(img_gray, axis=-1)  # (W;H;1)
-
-        # for loading mask we need the right ck+ label
-        # so use the convert_label function first!
-        # but for now we do not provide mask because
-        # there is no "neutral" class in our ck+ dataset
-        # :TODO: therefore it is not considered to use
-        #   to use FER2013 together with the FMPN network
-        #   - Do we need to use "neutral" class ?
-        #     if not we could use the FMPN network approach
-        # mask = self.__load_mask__(label)
+        if self.ckp_label_type:
+            mask = self.__load_mask__(self.convert_label(label[0]))
 
         # sample = {'image': img,
         #           'image_gray': img_gray,
         #           'label': label}
 
-        sample = {'image': img,
-                  'label': label[0]}
+        if self.ckp_label_type:
+            sample = {'image': img,  # 3 channel image
+                      'image_gray': img_gray,  # 1 channel image
+                      'label': self.convert_label(label[0]),
+                      'mask': mask}  # get ckp emotion
+        else:
+            sample = {'image': img,
+                      'image_gray': img_gray,
+                      'label': label[0]}
 
         if self.transform:
             sample = self.transform(sample)
@@ -252,13 +302,13 @@ class AffectNetSubset(DatasetBase):
                   # 'image_gray': img_gray,
                   'label': label,
                   # 'mask': mask
-        }
+                  }
         if self.transform:
             sample = self.transform(sample)
         return sample
 
 
-def get_ckp(args, batch_size=8, shuffle=True, num_workers=2, drop_last=False, valid:bool=None):
+def get_ckp(args, batch_size=8, shuffle=True, num_workers=2, drop_last=False, valid: bool = None):
     """Initialize ckp dataset and return train, test
     torch.utils.data.dataloader.DataLoader, already batched and shuffled."""
     # for loading the dataset set conditions for processing
@@ -294,11 +344,12 @@ def get_ckp(args, batch_size=8, shuffle=True, num_workers=2, drop_last=False, va
         return train_loader, test_loader
 
 
-def get_fer2013(args, batch_size=8, shuffle=True, num_workers=2, drop_last=False):
+def get_fer2013(args, batch_size=8, ckp_label_type=False, shuffle=True, num_workers=4, drop_last=False):
     transforms = tv.transforms.Compose([Fer2013ToTensor()])
     transforms_test = tv.transforms.Compose([Fer2013ToTensor()])
-    train_ds = FER2013(train=True, args=args, transform=transforms)
-    test_ds = FER2013(train=False, args=args, transform=transforms_test)
+    train_ds = FER2013(train=True, args=args, transform=transforms, ckp_label_type=ckp_label_type)
+    test_ds = FER2013(train=False, args=args, transform=transforms_test, valid=False, ckp_label_type=ckp_label_type)
+    valid_ds = FER2013(train=False, args=args, transform=transforms_test, valid=True, ckp_label_type=ckp_label_type)
 
     train_loader = DataLoader(dataset=train_ds,
                               batch_size=batch_size,
@@ -309,8 +360,16 @@ def get_fer2013(args, batch_size=8, shuffle=True, num_workers=2, drop_last=False
     test_loader = DataLoader(dataset=test_ds,
                              batch_size=batch_size,
                              shuffle=shuffle,
-                             num_workers=num_workers)
-    return train_loader, test_loader
+                             num_workers=num_workers,
+                             drop_last=drop_last)
+
+    valid_loader = DataLoader(dataset=valid_ds,
+                              batch_size=batch_size,
+                              shuffle=shuffle,
+                              num_workers=num_workers,
+                              drop_last=drop_last)
+
+    return train_loader, test_loader, valid_loader
 
 
 def get_affectnet(args, subset=True, batch_size=8, shuffle=True, num_workers=2, drop_last=False):
@@ -333,6 +392,7 @@ def get_affectnet(args, subset=True, batch_size=8, shuffle=True, num_workers=2, 
         return train_loader, test_loader
     else:
         pass
+
 
 # #################################################################
 #
@@ -483,9 +543,22 @@ class AffectNetToTensor(object):
 class Fer2013ToTensor(object):
     def __call__(self, sample):
         image = sample['image']
+        image_gray = sample['image_gray']
         label = sample['label']
+
         image = image.transpose((2, 0, 1))
+        image_gray = image_gray.transpose((2, 0, 1))
+
+        if "mask" in sample.keys():
+            mask = sample['mask']
+            mask = mask.transpose((2, 0, 1))
+            return {'image': to.from_numpy(image),
+                    'image_gray': to.from_numpy(image_gray),
+                    'mask': to.from_numpy(mask),
+                    'label': to.tensor(label)}
+
         return {'image': to.from_numpy(image),
+                'image_gray': to.from_numpy(image_gray),
                 'label': to.tensor(label)}
 
 

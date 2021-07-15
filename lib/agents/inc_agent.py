@@ -35,11 +35,11 @@ class InceptionAgent(Agent):
                                                                  valid=True)
             print("Loaded ckp dataset.")
         elif self.args.dataset == "fer":
-            self.train_dl, self.test_dl = get_fer2013(args=self.args,
-                                                      batch_size=self.args.batch_size,
-                                                      shuffle=True,
-                                                      num_workers=self.args.num_workers,
-                                                      drop_last=True)
+            self.train_dl, self.test_dl, self.valid_dl = get_fer2013(args=self.args,
+                                                                     batch_size=self.args.batch_size,
+                                                                     shuffle=True,
+                                                                     num_workers=self.args.num_workers,
+                                                                     drop_last=True)
             print("Loaded fer dataset.")
 
         self.opt = self.__init_optimizer__()
@@ -237,11 +237,13 @@ class InceptionAgent(Agent):
                                       predictions=all_predictions,
                                       n_classes=self.args.n_classes,
                                       path=self.test_plots,
-                                      gpu_device=self.args.gpu_id)
+                                      gpu_device=self.args.gpu_id,
+                                      dataset="fer",
+                                      classnames=["anger", "disgust", "fear", "happy", "sadness", "surprise"])
 
             diag = np.trace(cnfmat)
             all_preds = np.sum(cnfmat)
-            acc = diag/all_preds  # test acc
+            acc = diag / all_preds  # test acc
 
             # calculate precision recall fscore
             clf_report = prec_recall_fscore(y_true=all_labels.cpu(), y_pred=all_predictions.cpu())

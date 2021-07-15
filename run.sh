@@ -54,7 +54,7 @@ for %i in (0) do (for %j in (1) do python main.py --mode train --gpu_id 0 --mode
 
 fer
 
-for %i in (0) do (for %j in (0) do python main.py --mode train --gpu_id 0 --model_to_train incv3 --epochs 100 --pretrained %j --dataset fer --save_ckpt_intv 50 --batch_size 16 --lr_gen 0.001 --trainsplit train_ids_%i.csv --testsplit test_ids_%i.csv )
+for %i in (0) do (for %j in (1) do python main.py --mode train --gpu_id 0 --model_to_train incv3 --epochs 100 --pretrained %j --dataset fer --n_classes 6 --save_ckpt_intv 50 --batch_size 16 --lr_gen 0.001 --trainsplit train_ids_%i.csv --testsplit test_ids_%i.csv --validsplit valid_ids_%i.csv)
 
 
 
@@ -65,6 +65,9 @@ for %i in (0) do (for %j in (0) do python main.py --mode train --gpu_id 0 --mode
 
 
 
+fmpn on fer dataset
+
+for %i in (0) do (for %j in (1) do python main.py --mode train --gpu_id 0 --model_to_train fmpn --epochs 499 --save_ckpt_intv 50 --load_size 320 --final_size 299 --load_ckpt_fmg_only 1 --fmpn_cn inc_v3 --fmpn_cn_pretrained %j --dataset fer --n_classes 6 --batch_size 8 --scheduler_type linear_x --ckpt_fmg ./results/run_fmg_2021-05-19_13-23-51/train_fmg_2021-05-19_13-23-51/ckpt/fmg_2021-05-19_13-23-51_epoch_299_ckpt.pth.tar --trainsplit train_ids_%i.csv --testsplit test_ids_%i.csv --validsplit valid_ids_%i.csv)
 
 
 

@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import trange, tqdm
 from lib.utils import save_tensor_img
 from lib.agents.agent import Agent
-from lib.dataloader.datasets import get_ckp
+from lib.dataloader.datasets import get_ckp, get_fer2013
 from lib.eval.eval_utils import make_cnfmat_plot, prec_recall_fscore, roc_auc_score
 from lib.models.models import FacialMaskGenerator, PriorFusionNetwork, inceptionv3
 
@@ -28,22 +28,12 @@ class FmpnAgent(Agent):
         self.fmg = FacialMaskGenerator()
         self.pfn = PriorFusionNetwork()
         self.cn = self.init_cn()
-        # self.cn = tv.models.Inception3(num_classes=7, init_weights=True)
-        #
-        # :TODO: load with class function the right cn...
-        #
-        # self.cn = torch.hub.load('pytorch/vision:v0.9.0', 'inception_v3', pretrained=True)
-        # self.cn.fc = nn.Linear(2048, 7)
-        # print(self.cn)
 
         self.opt = self.__init_optimizer__()
 
         self.device = self.__set_device__()
         torch.cuda.set_device(self.device)
 
-        # self.fmg = self.fmg.to(self.device)
-        # self.pfn = self.pfn.to(self.device)
-        # self.cn = self.cn.to(self.device)
         self.fmg = self.fmg.cuda()
         self.pfn = self.pfn.cuda()
         self.cn = self.cn.cuda()
@@ -54,12 +44,21 @@ class FmpnAgent(Agent):
             next(self.cn.parameters()).is_cuda)
         )
 
-        self.train_dl, self.test_dl, self.valid_dl = get_ckp(args=self.args,
-                                                            batch_size=self.args.batch_size,
-                                                            shuffle=True,
-                                                            num_workers=self.args.num_workers,
-                                                            drop_last=True,
-                                                            valid=True)
+        if self.args.dataset == "ckp":
+            self.train_dl, self.test_dl, self.valid_dl = get_ckp(args=self.args,
+                                                                 batch_size=self.args.batch_size,
+                                                                 shuffle=True,
+                                                                 num_workers=self.args.num_workers,
+                                                                 drop_last=True,
+                                                                 valid=True)
+        elif self.args.dataset == "fer":
+            self.train_dl, self.test_dl, self.valid_dl = get_fer2013(args=self.args,
+                                                                     batch_size=self.args.batch_size,
+                                                                     shuffle=True,
+                                                                     num_workers=self.args.num_workers,
+                                                                     drop_last=True,
+                                                                     ckp_label_type=True)
+
         self.loss_fmg_fn = nn.MSELoss()
         self.loss_cn_fn = nn.CrossEntropyLoss()
 
@@ -79,7 +78,7 @@ class FmpnAgent(Agent):
         self.train_logs_path = None
 
         if self.args.load_ckpt:
-            # resume a already trained fmpn by loading the ckpts for fmg, pfn und cn
+            # resume already trained fmpn by loading the ckpts for fmg, pfn und cn
             # use this to continue training or infere images
             self.opt.add_param_group({'params': self.pfn.parameters()})
             self.opt.add_param_group({'params': self.cn.parameters()})
@@ -88,15 +87,15 @@ class FmpnAgent(Agent):
                            file_name_cn=self.args.ckpt_cn)
 
         if self.args.load_ckpt_fmg_only:
-            # resume just the facial mask generator
-            # use this for first trainings
+            # resume just the facial mask generator. Use this for first fmpn trainings
             self.load_fmg(file_name_fmg=self.args.ckpt_fmg)
             self.opt.add_param_group({'params': self.pfn.parameters()})
             self.opt.add_param_group({'params': self.cn.parameters()})
 
     def init_cn(self):
+        print("Initializing classification network...")
         if self.args.fmpn_cn == "inc_v3":
-            return inceptionv3(pretrained=self.args.fmpn_cn_pretrained)
+            return inceptionv3(pretrained=self.args.fmpn_cn_pretrained, n_classes=self.args.n_classes)
 
     def loss_total_fn(self, loss_fmg, loss_cn):
         """10, 1 are lambda1, lambda2 - add to args!!!"""
@@ -116,7 +115,7 @@ class FmpnAgent(Agent):
         if self.args.scheduler_type == "linear_x":
             factor_cn = (self.args.lr_init - self.args.lr_end) / (self.args.epochs - self.args.start_lr_drop_fmpn)
             factor_fmg = (self.args.lr_init_after - self.args.lr_end) / (
-                        self.args.epochs - self.args.start_lr_drop_fmpn)
+                    self.args.epochs - self.args.start_lr_drop_fmpn)
 
             # print("adjusting factor cn: ", factor_cn)
             # print("adjusting factor fmg: ", factor_fmg)
@@ -351,6 +350,9 @@ class FmpnAgent(Agent):
             fusion_img, imgorg_after_pfn_prep, imgheat_after_pfn_prep = self.pfn(images, heat_face)
 
             # save images
+            #
+            # :TODO: MAKE ARGS ARGUMENT  "save_samples" 0/1
+            #
             if self.tmp_epoch == 299 or self.tmp_epoch % 100 == 0:
                 for idx in range(len(predicted_masks)):
                     save_tensor_img(img=images[idx].cpu().detach(),
@@ -568,7 +570,7 @@ class FmpnAgent(Agent):
             # then divide correctly predicted by all predictions
             diag = np.trace(cnfmat)
             all_preds = np.sum(cnfmat)
-            acc = diag/all_preds
+            acc = diag / all_preds
             #
             # :TODO: calculate metrics here
             #
