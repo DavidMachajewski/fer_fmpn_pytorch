@@ -32,7 +32,12 @@ class Runner:
 
         if self.args.mode == "train":
             model.run()
-            eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl, save_to=model.train_plots, valid_dl=model.valid_dl)
+            if self.args.dataset == "fer":
+                eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl, save_to=model.train_plots, valid_dl=model.valid_dl, n_classes=self.args.n_classes, classnames=["anger", "disgust", "fear", "happy", "sadness", "surprise"])
+            else:
+                eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl,
+                                               save_to=model.train_plots, valid_dl=model.valid_dl,
+                                               n_classes=self.args.n_classes)
             eval.make_loss_plot(path_to_dict=model.train_logs_path, save_to=model.train_plots)
             eval.make_acc_plot(path_to_dict=model.train_logs_path, save_to=model.train_plots)
             if self.args.model_to_train == "fmpn":

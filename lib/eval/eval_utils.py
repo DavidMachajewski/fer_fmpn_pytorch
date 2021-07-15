@@ -8,7 +8,7 @@ from sklearn import metrics
 from torch.nn.functional import one_hot
 
 
-def make_ds_distribution_plot(train_dl, test_dl, save_to, n_classes=7, valid_dl=None):
+def make_ds_distribution_plot(train_dl, test_dl, save_to, n_classes=7, valid_dl=None, classnames = None):
     fig, ax = plt.subplots()
     idx = np.arange(n_classes)
 
@@ -45,8 +45,11 @@ def make_ds_distribution_plot(train_dl, test_dl, save_to, n_classes=7, valid_dl=
     ax.set_ylabel('number of samples')
     ax.set_title('Size of train, test, valid split per class')
     ax.set_xticks(idx)
-    ax.set_xticklabels(('anger', 'contempt', 'disgust',
-                        'fear', 'happy', 'sadness', 'surprise'))
+    if classnames is not None:
+        classnames = tuple(classnames)
+    else:
+        classnames = ('anger', 'contempt', 'disgust', 'fear', 'happy', 'sadness', 'surprise')
+    ax.set_xticklabels(classnames)
 
     ax.legend(frameon=False)
     ax.spines['right'].set_visible(False)
