@@ -232,14 +232,19 @@ class InceptionAgent(Agent):
             epoch_val_loss = epoch_val_loss / len(self.test_dl)
             epoch_val_acc = epoch_val_acc / len(self.test_dl)
 
+            if self.args.dataset == "ckp":
+                classnames = None
+            elif self.args.dataset == "fer":
+                classnames = ["anger", "disgust", "fear", "happy", "sadness", "surprise"]
+
             # create heatplot from confusion matrix
             cnfmat = make_cnfmat_plot(labels=all_labels,
                                       predictions=all_predictions,
                                       n_classes=self.args.n_classes,
                                       path=self.test_plots,
                                       gpu_device=self.args.gpu_id,
-                                      dataset="fer",
-                                      classnames=["anger", "disgust", "fear", "happy", "sadness", "surprise"])
+                                      dataset=self.args.dataset,
+                                      classnames=classnames)
 
             diag = np.trace(cnfmat)
             all_preds = np.sum(cnfmat)
