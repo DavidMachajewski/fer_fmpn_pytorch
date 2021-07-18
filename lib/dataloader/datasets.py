@@ -173,15 +173,9 @@ class FER2013(DatasetBase):
     6: "neutral"
 
     ckplabels
-    0: anger
-    1: contempt
-    2: disgust
-    3: fear
-    4: happiness
-    5: sadness
-    6: surprise
+    0: anger 1: contempt  2: disgust 3: fear  4: happiness 5: sadness 6: surprise
 
-    fer to ckp
+    fer to ckp (Für die masken notwendig)
     0 -> 0 : anger
     1 -> 2 : disgust
     2 -> 3 : fear
@@ -189,6 +183,14 @@ class FER2013(DatasetBase):
     4 -> 5 : sadness
     5 -> 6 : surprise
     6 -> -1: not available ( rausnehmen aus dem Datenset )
+
+    0 -> 0 : anger
+    1 -> 1 : disgust
+    2 -> 2 : fear
+    3 -> 3 : happiness
+    4 -> 4 : sadness
+    5 -> 5 : surprise
+
     """
 
     def __init__(self, args, train: bool, transform=None, valid=False, ckp_label_type=False):
@@ -204,9 +206,6 @@ class FER2013(DatasetBase):
         print("Loading {0} from {1}".format(self.splitname, path))
         self.data = pd.read_csv(path)
 
-    def covert_emotion_label(self, idx):
-        pass
-
     def get_img_as_2d_array(self, pixels):
         # convert pixels which are saved as string
         # within the dataframe to image of size 48x48
@@ -218,6 +217,10 @@ class FER2013(DatasetBase):
         return image.reshape((48, 48))
 
     def convert_label(self, fer_label):
+        new_labels = [0, 1, 2, 3, 4, 5]
+        return new_labels[fer_label]
+
+    def convert_label_to_masklabel(self, fer_label):
         """convert fer label to ck+ label type
         to load the correct mask or make it more compareable at least"""
         # fer in ckp form anger, disgust, fear, happiness, sadness, surprise
@@ -241,22 +244,23 @@ class FER2013(DatasetBase):
         img = cv.resize(img, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
         img_gray = np.expand_dims(img_gray, axis=-1)  # (W;H;1)
 
-        if self.ckp_label_type:
-            mask = self.__load_mask__(self.convert_label(label[0]))
+        if self.ckp_label_type:  # use this if you want to train the fmpn
+            mask = self.__load_mask__(self.convert_label_to_masklabel(label[0]))
 
         # sample = {'image': img,
         #           'image_gray': img_gray,
         #           'label': label}
 
-        if self.ckp_label_type:
+        if self.ckp_label_type: # label type for training fmpn
             sample = {'image': img,  # 3 channel image
                       'image_gray': img_gray,  # 1 channel image
                       'label': self.convert_label(label[0]),
+                      'label_to_load_mask': self.convert_label_to_masklabel(label[0]),
                       'mask': mask}  # get ckp emotion
-        else:
+        else:  # original label type without neutral
             sample = {'image': img,
                       'image_gray': img_gray,
-                      'label': label[0]}
+                      'label': self.convert_label(label[0])}
 
         if self.transform:
             sample = self.transform(sample)

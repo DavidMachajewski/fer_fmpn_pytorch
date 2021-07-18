@@ -281,20 +281,18 @@ def vis_feature_maps(model:torch.nn.Module, img_batch):
 
 
 if __name__ == '__main__':
+    """--- (1) train mask generator ---"""
+    # comment "train network" section
+    # run_fmg_agent()
+
     """--- (2) train network ---"""
-    args = Setup().parse()
-    # print(args.gpu_id)
     # comment "train mask generator" section
+    args = Setup().parse()
     runner = Runner(args)
     runner.start()
 
-    """--- (1) train mask generator ---"""
-    # comment "train networks" section
-    # run_fmg_agent()
 
-    #for image, label in next(iter(train_dl)):
-    #    plt.imshow(image.permute(1,2,0))
-    #plt.show()
+
 
 
     # --- run DeepDream algorithm ---

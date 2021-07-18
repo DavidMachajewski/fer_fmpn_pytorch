@@ -21,6 +21,11 @@ class Setup(object):
 
         parser.add_argument('--dataset', type=str, default='ckp', help="[ckp|fer|affectnet]")
         parser.add_argument('--n_classes', type=int, default=7, help="# of classes. E.g. ckp has 7.")
+        parser.add_argument('--data_augmentation', type=int, default=1, help="Use data augmentation for small datasets.")
+        parser.add_argument('--save_samples', type=int, default=0, help="Save some images samples from training")
+
+        # add epochs number for save_samples
+
         parser.add_argument('--num_workers', type=int, default=4, help="# workers for loading images parallel. Used by the dataloader.")
         parser.add_argument('--batch_size', type=int, default=8, help="batch size of dataset")
 

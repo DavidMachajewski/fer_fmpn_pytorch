@@ -636,6 +636,7 @@ def inceptionv3(pretrained=False, n_classes=7):
         #
         # :TODO: flexible number of classes! args.n_classes
         #
+        print("FC layer in inc. classes: ", n_classes)
         inc.fc = nn.Linear(in_features=2048, out_features=n_classes)
         to.nn.init.xavier_normal_(inc.fc.weight.data, gain=0.02)
         to.nn.init.constant_(inc.fc.bias.data, 0.0)
