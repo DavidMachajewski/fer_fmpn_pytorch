@@ -82,7 +82,7 @@ class Setup(object):
         #                    default="./results/run_fmg_2021-04-12_18-57-23/train_fmg_2021-04-12_18-57-23\ckpt/fmg_2021-04-12_18-57-23ckpt.pth.tar",
         #                    help="")
         parser.add_argument('--ckpt_to_load', type=str, default="./results/run_fmg_2021-04-12_23-00-37/train_fmg_2021-04-12_23-00-37\ckpt/fmg_2021-04-12_23-00-37ckpt.pth.tar")
-
+        parser.add_argument('--fmg_pretrained', type=int, default=1, help="if this is set to 0 the fmpn training just has the second training step")
         # ckpts for fmpn
         parser.add_argument('--load_ckpt_fmg_only', type=int, default=0, help="Load just the fmg to start a first fmpn training [0|1]")
         parser.add_argument('--ckpt_fmg', type=str, default=None)
