@@ -92,6 +92,7 @@ class FmpnAgent(Agent):
             self.opt.add_param_group({'params': self.pfn.parameters()})
             self.opt.add_param_group({'params': self.cn.parameters()})
         elif not self.args.fmg_pretrained:
+            print("Training just the second step of fmpn")
             # train without pretraining the fmg. Use this for big datasets like fer or affectnet
             self.opt.param_groups[0]['lr'] = self.args.lr_init_after
             self.opt.add_param_group({'params': self.pfn.parameters()})
