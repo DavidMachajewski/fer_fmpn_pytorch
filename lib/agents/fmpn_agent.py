@@ -349,41 +349,42 @@ class FmpnAgent(Agent):
                 # :TODO: make an array with epochs when to save images e.g. [299, 350, 400, 450, 499]
                 #if self.tmp_epoch == 299 or self.tmp_epoch % 100 == 0:
                 if self.tmp_epoch in [0, 50, 100, 150, 199]:
-                    for idx in range(len(predicted_masks)):
-                        save_tensor_img(img=images[idx].cpu().detach(),
-                                        path=self.train_plots + "imgorg_"
-                                             + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
-                                            self.tmp_epoch) + "_batch_" + str(i) + ".png")
+                    if i < 1:
+                        for idx in range(len(predicted_masks)):
+                            save_tensor_img(img=images[idx].cpu().detach(),
+                                            path=self.train_plots + "imgorg_"
+                                                 + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
+                                                self.tmp_epoch) + "_batch_" + str(i) + ".png")
 
-                        save_tensor_img(img=predicted_masks[idx].cpu().detach(),
-                                        path=self.train_plots + "pred_mask_"
-                                             + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
-                                            self.tmp_epoch) + "_batch_" + str(i) + ".png")
+                            save_tensor_img(img=predicted_masks[idx].cpu().detach(),
+                                            path=self.train_plots + "pred_mask_"
+                                                 + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
+                                                self.tmp_epoch) + "_batch_" + str(i) + ".png")
 
-                        save_tensor_img(img=images_gray[idx].cpu().detach(),
-                                        path=self.train_plots + "gray_img_"
-                                             + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
-                                            self.tmp_epoch) + "_batch_" + str(i) + ".png")
+                            save_tensor_img(img=images_gray[idx].cpu().detach(),
+                                            path=self.train_plots + "gray_img_"
+                                                 + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
+                                                self.tmp_epoch) + "_batch_" + str(i) + ".png")
 
-                        save_tensor_img(img=heat_face[idx].cpu().detach(),
-                                        path=self.train_plots + "multiplied_img_"
-                                             + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
-                                            self.tmp_epoch) + "_batch_" + str(i) + ".png")
+                            save_tensor_img(img=heat_face[idx].cpu().detach(),
+                                            path=self.train_plots + "multiplied_img_"
+                                                 + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
+                                                self.tmp_epoch) + "_batch_" + str(i) + ".png")
 
-                        save_tensor_img(img=imgorg_after_pfn_prep[idx].cpu().detach(),
-                                        path=self.train_plots + "imgorg_pfn_prep_"
-                                             + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
-                                            self.tmp_epoch) + "_batch_" + str(i) + ".png")
+                            save_tensor_img(img=imgorg_after_pfn_prep[idx].cpu().detach(),
+                                            path=self.train_plots + "imgorg_pfn_prep_"
+                                                 + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
+                                                self.tmp_epoch) + "_batch_" + str(i) + ".png")
 
-                        save_tensor_img(img=imgheat_after_pfn_prep[idx].cpu().detach(),
-                                        path=self.train_plots + "multiplied_pfn_prep_"
-                                             + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
-                                            self.tmp_epoch) + "_batch_" + str(i) + ".png")
+                            save_tensor_img(img=imgheat_after_pfn_prep[idx].cpu().detach(),
+                                            path=self.train_plots + "multiplied_pfn_prep_"
+                                                 + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
+                                                self.tmp_epoch) + "_batch_" + str(i) + ".png")
 
-                        save_tensor_img(img=fusion_img[idx].cpu().detach(),
-                                        path=self.train_plots + "fusioned_img_"
-                                             + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
-                                            self.tmp_epoch) + "_batch_" + str(i) + ".png")
+                            save_tensor_img(img=fusion_img[idx].cpu().detach(),
+                                            path=self.train_plots + "fusioned_img_"
+                                                 + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
+                                                self.tmp_epoch) + "_batch_" + str(i) + ".png")
 
             classifications = self.cn(fusion_img)
 
