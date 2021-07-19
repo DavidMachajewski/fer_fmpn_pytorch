@@ -5,6 +5,7 @@ import pickle
 import pandas as pd
 from tqdm import tqdm, trange
 from lib.agents.agent import Agent
+from lib.dataloader.datasets import get_fer2013
 from lib.models.models import densenet121
 from lib.eval.eval_utils import make_cnfmat_plot, prec_recall_fscore, roc_auc_score
 from lib.models.models import get_ckp
@@ -21,10 +22,20 @@ class DenseNetAgent(Agent):
         self.epoch_counter = 0
 
         if self.args.dataset == "ckp":
-            self.train_dl, self.test_dl = get_ckp(args=self.args,
-                                                  batch_size=self.args.batch_size,
-                                                  shuffle=True,
-                                                  num_workers=self.args.num_workers)
+            self.train_dl, self.test_dl, self.valid_dl = get_ckp(args=self.args,
+                                                                 batch_size=self.args.batch_size,
+                                                                 shuffle=True,
+                                                                 num_workers=self.args.num_workers,
+                                                                 drop_last=True,
+                                                                 valid=True)
+        elif self.args.dataset == "fer":
+            self.train_dl, self.test_dl, self.valid_dl = get_fer2013(args=self.args,
+                                                                     batch_size=self.args.batch_size,
+                                                                     shuffle=True,
+                                                                     num_workers=self.args.num_workers,
+                                                                     drop_last=True,
+                                                                     ckp_label_type=True)
+
         self.opt = self.__init_optimizer__()
         self.loss_fn = torch.nn.CrossEntropyLoss()
         self.device = self.__set_device__()
@@ -113,6 +124,16 @@ class DenseNetAgent(Agent):
                 self.list_lr.append(self.opt.param_groups[0]['lr'])
 
                 self.__adjust_lr__()
+
+                # save best epochs
+                if self.max_acc < test_acc:
+                    self.max_acc = test_acc
+                    if test_acc > 0.9899:
+                        print("Saving best checkpoint so far...")
+                        self.save_ckpt()
+                        self.save_resultlists_as_dict(
+                            self.train_path + "/" + "epoch_" + str(epoch) + "_train_logs.pickle")
+
 
                 epochs.set_postfix(loss="{:.3f}".format(train_loss, prec='.3'),
                                    acc="{:.3f}".format(train_acc, prec='.3'),

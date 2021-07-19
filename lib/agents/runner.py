@@ -17,7 +17,7 @@ class Runner:
             print("Initializing DenseNet Network...")
             model = DenseNetAgent(self.args)
         elif self.args.model_to_train == "resnet18":
-            model = 0
+            model = 0  # :TODO: IMPLEMENT AGENT
         elif self.args.model_to_train == "fmg":
             model = 0
         elif self.args.model_to_train == "fmpn":
