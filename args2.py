@@ -67,6 +67,10 @@ class Setup(object):
         parser.add_argument('--masks', type=str, default="./datasets/masks/", help="path to masks folder")
         parser.add_argument('--labels', type=str, default="./datasets/masks/emotion_labels.pkl")
 
+        # rafdb paths
+        parser.add_argument('--rafdb_labelfile', type=str)
+        parser.add_argument('--rafdb', type=str, default="./datasets/rafdb/")
+
         # densenet params
         parser.add_argument('--dn_growth', type=int, default=32, help="growth rate of densenet")
         parser.add_argument('--dn_features', type=int, default=64, help="initial features")

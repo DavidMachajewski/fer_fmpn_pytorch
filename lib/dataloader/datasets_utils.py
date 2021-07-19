@@ -1,28 +1,18 @@
-#
-# FER2013
-#
-# classes
-#
-# anger, disgust, fear, happy, sad, surprise, neutral
-# emotions = {0: 'Angry', 1: 'Disgust', 2: 'Fear', 3: 'Happy', 4: 'Sad', 5: 'Surprise', 6: 'Neutral'}
-#
-#
-# Preprocess FER2013
-#
-# 0. Create FER dataset folder if not existent
-# 1. Create 10 split of FER2013
-#
-#
-#
 import numpy as np
+import csv
 import pandas as pd
 from args2 import Setup
 from sklearn.model_selection import KFold
 from sklearn.utils import shuffle
+from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
 
-class FERUtils():
+class FERUtils:
+    """
+    # anger, disgust, fear, happy, sad, surprise, neutral
+    # emotions = {0: 'Angry', 1: 'Disgust', 2: 'Fear', 3: 'Happy', 4: 'Sad', 5: 'Surprise', 6: 'Neutral'}
+    """
     def __init__(self, args, remove_label = None):
         self.args = args
         self.dataset = None
@@ -160,6 +150,53 @@ def run_affectnet_csv():
     afnet = AffectNetUtils(args)
 
 
+class RafDBUtils:
+    def __init__(self, args, remove_label = None):
+        self.args = args
+        self.__load_labelfile__(path_to_file=self.args.rafdb_labelfile)
+        self.save_to_csv()
+
+    def __load_labelfile__(self, path_to_file):
+        self.file_names, self.labels = [], []
+        self.train_files, self.train_labels = [], []
+        self.test_files, self.test_labels = [], []
+        for line in open(path_to_file):
+            row = line.split("\n")
+            name, label = row[0].split(" ")
+            # sort for train
+            if name.find("train") == -1:  # string train not found
+                self.test_files.append(name)
+                self.test_labels.append(label)
+            else:
+                self.train_files.append(name)
+                self.train_labels.append(label)
+            self.file_names.append(name)
+            self.labels.append(label)
+
+
+    def save_to_csv(self):
+        train_filename = "train_ids_0.csv"
+        test_filename = "test_ids_0.csv"
+        val_filename = "valid_ids_0.csv"
+
+        # split the test set to test/val 50/50
+        X_test, X_val, y_test, y_val = train_test_split(self.test_files, self.test_labels, test_size=0.5, random_state=42)
+
+        # create dataframes
+        train_df = pd.DataFrame(data=list(zip(self.train_files, self.train_labels)), columns=['file_name', 'label'])
+        test_df = pd.DataFrame(data=list(zip(X_test, y_test)), columns=['file_name', 'label'])
+        val_df = pd.DataFrame(data=list(zip(X_val, y_val)), columns=['file_name', 'label'])
+
+        train_df.to_csv(self.args.rafdb + train_filename, index=False)
+        test_df.to_csv(self.args.rafdb + test_filename, index=False)
+        val_df.to_csv(self.args.rafdb + val_filename, index=False)
+
+
+
+
+
+
+
 """
 if __name__ == '__main__':
     args = Setup().parse()
@@ -168,10 +205,10 @@ if __name__ == '__main__':
 
 if __name__ == '__main__':
     args = Setup().parse()
-    args.fer_images = "../../datasets/fer/fer2013.csv"
-    args.fer = "../../datasets/fer/"
+    # args.fer_images = "../../datasets/fer/fer2013.csv"
+    # args.fer = "../../datasets/fer/"
     # create fer dataset but remove label neutral
-    fer = FERUtils(args)
+    # fer = FERUtils(args)
     # fer.save_to_csv()
 
     # data = fer.dataset.values
@@ -179,10 +216,10 @@ if __name__ == '__main__':
     # labels = data[:, 0]
     # pix = data[:, 1]
     # print("test: ", pix)
-    print(fer.train)
-    print(fer.train.iloc[[0]]["emotion"].values)
-    print(fer.train.iloc[[0]]["pixels"].values)
-    print(fer.train.iloc[[0]]["Usage"].values)
+    args.rafdb_labelfile = "D:/datasets/RAFDB/basic/basic/EmoLabel/list_patition_label.txt"
+    args.rafdb = "D:/projects/pyprojects/fer_fmpn_pytorch/datasets/rafdb/"
+    raf = RafDBUtils(args=args)
+
 
 
 

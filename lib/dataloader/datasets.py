@@ -84,6 +84,11 @@ class DatasetBase(Dataset):
         return norm_img
 
 
+class RafDB(DatasetBase):
+    def __init__(self):
+        pass
+
+
 class CKP(DatasetBase):
     """
     self.classes = {
