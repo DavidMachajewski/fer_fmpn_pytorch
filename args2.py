@@ -35,8 +35,12 @@ class Setup(object):
         # optimizers
         parser.add_argument('--optimizer', type=str, default="adam", help='optimizer')
         parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for Adam optimizer')
-
         parser.add_argument('--lr_gen', type=float, default=0.001, help="General learning rate for trainings.")
+
+        # fmg loss lambdas
+        parser.add_argument('--lambda_fmg', type=float, default=1e-1)
+        parser.add_argument('--lambda_cn', type=float, default=1.0)
+
 
         # schedulers
         parser.add_argument('--scheduler_type', type=str, default="linear_x", help='Scheduler for reducing lr ["linear_x" | "const"]')

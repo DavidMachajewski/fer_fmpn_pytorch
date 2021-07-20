@@ -106,7 +106,7 @@ class FmpnAgent(Agent):
 
     def loss_total_fn(self, loss_fmg, loss_cn):
         """10, 1 are lambda1, lambda2 - add to args!!!"""
-        return 10 * loss_fmg + 1 * loss_cn  # lambda1, lambda2 to args!
+        return self.args.lambda_fmg * loss_fmg + self.args.lambda_cn * loss_cn  # lambda1, lambda2 to args!
 
     def __adjust_lr__(self):
         """Adjust the learning rate.

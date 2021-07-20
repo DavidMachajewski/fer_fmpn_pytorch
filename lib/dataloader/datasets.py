@@ -85,7 +85,17 @@ class DatasetBase(Dataset):
 
 
 class RafDB(DatasetBase):
-    def __init__(self):
+    def __init__(self, args, train: bool, transform=None, valid=False, ckp_label_type=False):
+        pass
+
+    def __len__(self):
+        pass
+
+    def __getitem__(self, item):
+        pass
+
+    def __load_file__(self):
+        """load the .csv file"""
         pass
 
 

@@ -187,6 +187,10 @@ class RafDBUtils:
         test_df = pd.DataFrame(data=list(zip(X_test, y_test)), columns=['file_name', 'label'])
         val_df = pd.DataFrame(data=list(zip(X_val, y_val)), columns=['file_name', 'label'])
 
+        #
+        # :TODO: REMOVE OBJECTIVE LABEL (NEUTRAL) FROM DATASETS
+        #
+
         train_df.to_csv(self.args.rafdb + train_filename, index=False)
         test_df.to_csv(self.args.rafdb + test_filename, index=False)
         val_df.to_csv(self.args.rafdb + val_filename, index=False)
