@@ -38,9 +38,7 @@ class DatasetBase(Dataset):
 
     def __load_image__(self, path):
         img = cv.imread(path)
-        print(
-            img
-        )
+        # print(img)
 
         if self.train:
             # load bigger size image to apply random cropping while training ckp on fmpn/fmg (small dataset)
@@ -133,7 +131,7 @@ class RafDB(DatasetBase):
 
     def __remove_emotion__(self):
         """remove a given emotion from the dataset"""
-        print("remove class nr. {}".format(self.remove_class))
+        # print("remove class nr. {}".format(self.remove_class))
         if isinstance(self.remove_class, int):
             self.data = self.data[self.data["label"] != self.remove_class]
 
@@ -163,7 +161,7 @@ class RafDB(DatasetBase):
 
         img_path = self.args.rafdb_imgs + file_name
 
-        print("image path to load inside getitem: {0} \n".format(img_path))
+        # print("image path to load inside getitem: {0} \n".format(img_path))
 
         img = self.__load_image__(img_path)
         img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
@@ -316,7 +314,7 @@ class FER2013(DatasetBase):
 
     def __load_file__(self):
         path = self.args.fer + self.splitname
-        print("Loading {0} from {1}".format(self.splitname, path))
+        # print("Loading {0} from {1}".format(self.splitname, path))
         self.data = pd.read_csv(path)
 
     def get_img_as_2d_array(self, pixels):
