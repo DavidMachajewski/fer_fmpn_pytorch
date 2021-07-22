@@ -16,10 +16,10 @@ import numpy as np
 import torch.nn.functional as F
 
 
-
 class BuildingBlock(nn.Module):
     """Implementation of a building block for ResNet18/34.
     ResNet50 and higher are using BottleneckBlocks."""
+
     def __init__(self,
                  inp_filters: int,
                  out_filters: int,
@@ -35,7 +35,8 @@ class BuildingBlock(nn.Module):
         self.stdnum_channels = 64
         self.padding = padding
         self.convx_1 = nn.Conv2d(self.inp_filters, self.out_filters, self.kernel, self.stride, self.padding, bias=False)
-        self.convx_2 = nn.Conv2d(self.out_filters, self.out_filters, self.kernel, self.std_stride, self.padding, bias=False)
+        self.convx_2 = nn.Conv2d(self.out_filters, self.out_filters, self.kernel, self.std_stride, self.padding,
+                                 bias=False)
         self.bn_1 = nn.BatchNorm2d(self.out_filters)
         self.bn_2 = nn.BatchNorm2d(self.out_filters)
         self.downsample = nn.Conv2d(self.inp_filters, self.out_filters, stride=self.stride, kernel_size=1)
@@ -85,6 +86,7 @@ class FacialMaskGenerator(nn.Module):
     Take grayscaled face images and its corresponding
     emotion ground truth masks to learn a high density map
     per emotion"""
+
     def __init__(self):
         super().__init__()
         self.encoder = nn.Sequential(
@@ -128,6 +130,7 @@ class PriorFusionNetwork(nn.Module):
     """Implementation of the prior fusion network (PFN)
     which prepares original input image and mask image
     for feed to the classification network (CN)"""
+
     def __init__(self):
         super().__init__()
         # self.shape_fmg = (1, self.args.final_size, self.args.final_size)
@@ -139,7 +142,7 @@ class PriorFusionNetwork(nn.Module):
             nn.Conv2d(in_channels=self.shape_fmg[0],
                       out_channels=self.shape_org[0],
                       kernel_size=(3, 3),
-                      padding=(1,1)),
+                      padding=(1, 1)),
             nn.BatchNorm2d(self.shape_org[0]),
             nn.ReLU(inplace=True)
         )
@@ -179,6 +182,7 @@ class PriorFusionNetwork(nn.Module):
 
 class NetworkSetup(object):
     """Base Class for setting up networks"""
+
     def __init__(self, args):
         self.args = args
         self.sub_models = []
@@ -315,6 +319,7 @@ class FMG(NetworkSetup):
     Reset the learning rate to 0.00001. Other models use learning rates of 0.0001.
     Jointly training runs for another 200 epochs with linear decay after epoch 100.
     """
+
     def __init__(self, args):
         super(FMG, self).__init__(args)
         self.fmg = FacialMaskGenerator()
@@ -382,7 +387,7 @@ class FMPN(NetworkSetup):
         self.sub_models.append("cn")
 
     def setup(self):
-        super(FMPN,self).setup()
+        super(FMPN, self).setup()
         if self.network_mode == "train":
             self.sub_losses.append("fmg")
             self.sub_losses.append("cn")
@@ -434,7 +439,6 @@ class FMPN(NetworkSetup):
         self.total_fmpn_loss = self.loss_total(self.loss_fmg, self.loss_cn)
         # print("total loss: ", self.total_fmpn_loss)
         self.total_fmpn_loss.backward()
-
 
     def optimizer_step(self):
         self.forward()
@@ -526,11 +530,11 @@ class RunSetup(object):
         print(self.run_path)
         os.makedirs(self.run_path)
         self.train_path = self.run_path \
-                     + "train_" + self.model_to_train + "_" \
-                     + self.timestamp + "/"
+                          + "train_" + self.model_to_train + "_" \
+                          + self.timestamp + "/"
         self.test_path = self.run_path \
-                     + "test_" + self.model_to_train + "_" \
-                     + self.timestamp + "/"
+                         + "test_" + self.model_to_train + "_" \
+                         + self.timestamp + "/"
         os.makedirs(self.train_path)
 
         os.makedirs(self.train_path + "ckpt/")
@@ -598,7 +602,6 @@ class RunFMPN(RunSetup):
         pass
 
 
-
 def vgg19(pretrained=False):
     """Source of vgg pytorch:
     https://github.com/pytorch/vision/blob/master/torchvision/models/vgg.py"""
@@ -612,18 +615,35 @@ def vgg19(pretrained=False):
         state = {k: v for k, v in state_dict.items() if k in vgg.state_dict()}
         vgg.load_state_dict(state)
         print("Loaded ")
-        vgg.features[0] = to.nn.Conv2d(n_channels, 64, kernel_size=(3,3), stride=(1,1), padding=(1,1))
+        vgg.features[0] = to.nn.Conv2d(n_channels, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         vgg.classifier[6] = to.nn.Linear(in_features=4096, out_features=n_classes, bias=True)
     else:
         print("Loading non pretrained model...")
         vgg = tv.models.vgg19(transform_input=True, init_weights=False)
-        vgg.features[0] = to.nn.Conv2d(n_channels, 64, kernel_size=(3,3), stride=(1,1), padding=(1,1))
+        vgg.features[0] = to.nn.Conv2d(n_channels, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         vgg.classifier[6] = to.nn.Linear(in_features=4096, out_features=n_classes, bias=True)
     return vgg
 
 
+def resnet18(pretrained=False, n_classes=7):
+    ""
+    if pretrained:
+        print("Loading pretrained model...")
+        res = tv.models.resnet18(transform_input=True,
+                                 init_weights=False)
+        state_dict = to.hub.load_state_dict_from_url('https://download.pytorch.org/models/resnet18-5c106cde.pth')
+        state = {k: v for k, v in state_dict.items() if k in res.state_dict()}
+        res.load_state_dict(state)
+
+        res.fc = nn.Linear(in_features=res.fc.in_features, out_features=n_classes)
+
+    else:
+        pass
+    return None
+
+
 def inceptionv3(pretrained=False, n_classes=7):
-    """Input size for inception net is (3. 229, 299) """
+    """Input size for inception net is (3. 299, 299) """
     if pretrained:
         print("Loading pretrained model...")
         inc = tv.models.Inception3(transform_input=True,
@@ -657,7 +677,8 @@ def densenet121(args, pretrained=False):
                                       # num_init_features=args.dn_features,
                                       # bn_size=args.dn_bnsize
                                       )
-        state_dict = to.hub.load_state_dict_from_url('http://data.lip6.fr/cadene/pretrainedmodels/densenet121-fbdb23505.pth')
+        state_dict = to.hub.load_state_dict_from_url(
+            'http://data.lip6.fr/cadene/pretrainedmodels/densenet121-fbdb23505.pth')
         pattern = re.compile(
             r'^(.*denselayer\d+\.(?:norm|relu|conv))\.((?:[12])\.(?:weight|bias|running_mean|running_var))$')
         for key in list(state_dict.keys()):
@@ -674,10 +695,10 @@ def densenet121(args, pretrained=False):
         to.nn.init.constant_(dense.classifier.bias.data, 0.0)
     else:
         print("Inititialize non pretrained model.")
-        dense = tv.models.densenet121(num_classes=7  #,
-                                      #growth_rate=args.dn_growth,
-                                      #num_init_features=args.dn_features,
-                                      #bn_size=args.dn_bnsize
+        dense = tv.models.densenet121(num_classes=7  # ,
+                                      # growth_rate=args.dn_growth,
+                                      # num_init_features=args.dn_features,
+                                      # bn_size=args.dn_bnsize
                                       )
     return dense
 

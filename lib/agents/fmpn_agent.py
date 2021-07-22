@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import trange, tqdm
 from lib.utils import save_tensor_img
 from lib.agents.agent import Agent
-from lib.dataloader.datasets import get_ckp, get_fer2013
+from lib.dataloader.datasets import get_ckp, get_fer2013, get_rafdb
 from lib.eval.eval_utils import make_cnfmat_plot, prec_recall_fscore, roc_auc_score
 from lib.models.models import FacialMaskGenerator, PriorFusionNetwork, inceptionv3
 
@@ -44,6 +44,9 @@ class FmpnAgent(Agent):
             next(self.cn.parameters()).is_cuda)
         )
 
+        #
+        # :TODO: LOADING DATALOADER CAN BE DONE BY EXTRA FUNCTION
+        #
         if self.args.dataset == "ckp":
             self.train_dl, self.test_dl, self.valid_dl = get_ckp(args=self.args,
                                                                  batch_size=self.args.batch_size,
@@ -58,6 +61,13 @@ class FmpnAgent(Agent):
                                                                      num_workers=self.args.num_workers,
                                                                      drop_last=True,
                                                                      ckp_label_type=True)
+        elif self.args.dataset == "rafdb":
+            self.train_dl, self.test_dl, self.valid_dl = get_rafdb(args=self.args,
+                                                                   ckp_label_type=self.args.ckp_label_type,
+                                                                   batch_size=self.args.batch_size,
+                                                                   shuffle=True,
+                                                                   num_workers=self.args.num_workers,
+                                                                   drop_last=True)
 
         self.loss_fmg_fn = nn.MSELoss()
         self.loss_cn_fn = nn.CrossEntropyLoss()

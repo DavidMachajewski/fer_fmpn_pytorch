@@ -66,6 +66,10 @@ class Setup(object):
         #
         # :TODO: change fer_csvsplits parameter if there will not be a tensplit
         #
+
+        parser.add_argument('--ckp_label_type', type=int, default=0, help="load dataset with ckp label to load mask while training the fmpn")
+
+        # fer
         parser.add_argument('--fer_csvsplits', type=str, default="./datasets/ckp/tensplit/", help="path to ckp splits")
 
         parser.add_argument('--masks', type=str, default="./datasets/masks/", help="path to masks folder")

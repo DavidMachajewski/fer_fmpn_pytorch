@@ -6,7 +6,7 @@ import pickle
 import pandas as pd
 from tqdm import tqdm, trange
 from lib.agents.agent import Agent
-from lib.dataloader.datasets import get_fer2013
+from lib.dataloader.datasets import get_fer2013, get_rafdb
 from lib.models.models import densenet121
 from lib.eval.eval_utils import make_cnfmat_plot, prec_recall_fscore, roc_auc_score
 from lib.models.models import get_ckp
@@ -28,6 +28,7 @@ class DenseNetAgent(Agent):
                                                                  num_workers=self.args.num_workers,
                                                                  drop_last=True,
                                                                  valid=True)
+            print("Loaded ckp dataset")
         elif self.args.dataset == "fer":
             self.train_dl, self.test_dl, self.valid_dl = get_fer2013(args=self.args,
                                                                      batch_size=self.args.batch_size,
@@ -35,6 +36,15 @@ class DenseNetAgent(Agent):
                                                                      num_workers=self.args.num_workers,
                                                                      drop_last=True,
                                                                      ckp_label_type=True)
+            print("Loaded fer dataset")
+        elif self.args.dataset == "rafdb":
+            self.train_dl, self.test_dl, self.valid_dl = get_rafdb(args=self.args,
+                                                                   ckp_label_type=self.args.ckp_label_type,
+                                                                   batch_size=self.args.batch_size,
+                                                                   shuffle=True,
+                                                                   num_workers=self.args.num_workers,
+                                                                   drop_last=True)
+            print("Loaded rafdb dataset")
 
         self.opt = self.__init_optimizer__()
         self.loss_fn = torch.nn.CrossEntropyLoss()
