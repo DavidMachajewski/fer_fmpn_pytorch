@@ -6,6 +6,7 @@ from sklearn.model_selection import KFold
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+from lib.dataloader.datasets import RafDB
 
 
 class FERUtils:
@@ -196,17 +197,6 @@ class RafDBUtils:
         val_df.to_csv(self.args.rafdb + val_filename, index=False)
 
 
-
-
-
-
-
-"""
-if __name__ == '__main__':
-    args = Setup().parse()
-"""
-
-
 if __name__ == '__main__':
     args = Setup().parse()
     # args.fer_images = "../../datasets/fer/fer2013.csv"
@@ -220,9 +210,15 @@ if __name__ == '__main__':
     # labels = data[:, 0]
     # pix = data[:, 1]
     # print("test: ", pix)
+    args.trainsplit = "train_ids_0.csv"
     args.rafdb_labelfile = "D:/datasets/RAFDB/basic/basic/EmoLabel/list_patition_label.txt"
     args.rafdb = "D:/projects/pyprojects/fer_fmpn_pytorch/datasets/rafdb/"
-    raf = RafDBUtils(args=args)
+    args.rafdb_imgs = "D:/projects/pyprojects/fer_fmpn_pytorch/datasets/rafdb/aligned/"
+    # raf = RafDBUtils(args=args)
+
+    rafdb = RafDB(args=args, train=True, ckp_label_type=True)
+
+    print(rafdb[0])
 
 
 

@@ -1,5 +1,6 @@
 import json
 
+import numpy as np
 import torch
 import pickle
 import pandas as pd
@@ -9,7 +10,6 @@ from lib.dataloader.datasets import get_fer2013
 from lib.models.models import densenet121
 from lib.eval.eval_utils import make_cnfmat_plot, prec_recall_fscore, roc_auc_score
 from lib.models.models import get_ckp
-
 
 
 class DenseNetAgent(Agent):
@@ -134,7 +134,6 @@ class DenseNetAgent(Agent):
                         self.save_resultlists_as_dict(
                             self.train_path + "/" + "epoch_" + str(epoch) + "_train_logs.pickle")
 
-
                 epochs.set_postfix(loss="{:.3f}".format(train_loss, prec='.3'),
                                    acc="{:.3f}".format(train_acc, prec='.3'),
                                    val_loss="{:.3f}".format(test_loss, prec='.3'),
@@ -235,22 +234,28 @@ class DenseNetAgent(Agent):
             epoch_val_acc = epoch_val_acc / len(self.test_dl)
 
             # create heatplot from confusion matrix
-            make_cnfmat_plot(labels=all_labels,
-                             predictions=all_predictions,
-                             n_classes=self.args.n_classes,
-                             path=self.test_plots,
-                             gpu_device=self.args.gpu_id)
+            cnfmat = make_cnfmat_plot(labels=all_labels,
+                                      predictions=all_predictions,
+                                      n_classes=self.args.n_classes,
+                                      path=self.test_plots,
+                                      gpu_device=self.args.gpu_id)
+
+            diag = np.trace(cnfmat)
+            all_preds = np.sum(cnfmat)
+            acc = diag / all_preds
 
             # calculate precision recall fscore
             clf_report = prec_recall_fscore(y_true=all_labels.cpu(), y_pred=all_predictions.cpu())
-            roc_score = roc_auc_score(y_true=all_labels.cpu(), y_pred=all_predictions.cpu(), n_classes=self.args.n_classes)
+            roc_score = roc_auc_score(y_true=all_labels.cpu(), y_pred=all_predictions.cpu(),
+                                      n_classes=self.args.n_classes)
             # out_df.to_csv(self.test_plots + "clf_report.csv", index=False)
             out_dict = {
                 "precision": clf_report[0].round(2).tolist(),
                 "recall": clf_report[1].round(2).tolist(),
                 "f1": clf_report[2].round(2).tolist(),
                 "support": clf_report[3].tolist(),
-                "roc_auc_ovr": roc_score.tolist()
+                "roc_auc_ovr": roc_score.tolist(),
+                "test_acc": acc
             }
             with open(self.test_plots + "clf_report.txt", "w") as f:
                 print(out_dict, file=f)

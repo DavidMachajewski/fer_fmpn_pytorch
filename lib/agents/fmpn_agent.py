@@ -556,11 +556,24 @@ class FmpnAgent(Agent):
             # print("val_acc: ", epoch_val_acc)
             # print("val_loss: {0} \t val_accuracy: {1}".format(epoch_total_val_loss, epoch_val_acc))
 
+            if self.args.dataset == "ckp":
+                classnames = None
+            elif self.args.dataset == "fer":  # 6 classes without neutral image
+                classnames = ["anger", "disgust", "fear", "happy", "sadness", "surprise"]
+            elif self.args.dataset == "rafdb":
+                classnames = ['surprise', 'fear', 'disgust', 'happiness', 'sadness', 'anger']
+
+            """
+             0 surprise, 1 fear, 2 disgust, 3 happiness, 4 sadness, 5 anger, 6 neutral
+            """
+
             cnfmat = make_cnfmat_plot(labels=all_labels,
                                       predictions=all_predictions,
                                       n_classes=self.args.n_classes,
                                       path=self.test_plots,
-                                      gpu_device=self.args.gpu_id)
+                                      gpu_device=self.args.gpu_id,
+                                      dataset=self.args.dataset,
+                                      classnames=classnames)
 
             # sum diagonal of cnf matrix and sum whole matrix
             # then divide correctly predicted by all predictions

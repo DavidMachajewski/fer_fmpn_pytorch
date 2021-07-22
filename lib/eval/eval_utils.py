@@ -196,10 +196,12 @@ def make_cnfmat_plot(labels, predictions, n_classes, path, gpu_device, title="",
         cnfmat_df = pd.DataFrame(cnfmatnorm,
                                  index=["anger", "contempt", "disgust", "fear", "happy", "sadness", "surprise"],
                                  columns=["anger", "contempt", "disgust", "fear", "happy", "sadness", "surprise"])
-    elif dataset == "fer" and classnames is not None:
-        cnfmat_df = pd.DataFrame(cnfmatnorm,
-                                 index=classnames,
-                                 columns=classnames)
+    #elif dataset == "fer" and classnames is not None:
+    #    cnfmat_df = pd.DataFrame(cnfmatnorm,
+    #                             index=classnames,
+    #                             columns=classnames)
+    elif dataset != "ckp" and classnames is not None:
+        cnfmat_df = pd.DataFrame(cnfmatnorm, index=classnames, columns=classnames)
 
     ax = sn.heatmap(cnfmat_df, annot=True, annot_kws={"size": 10}, linewidths=5, fmt='.0%', cmap='Blues')
     plt.title(title, fontsize=12)

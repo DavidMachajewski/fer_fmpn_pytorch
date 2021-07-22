@@ -236,6 +236,8 @@ class InceptionAgent(Agent):
                 classnames = None
             elif self.args.dataset == "fer":
                 classnames = ["anger", "disgust", "fear", "happy", "sadness", "surprise"]
+            elif self.args.dataset == "rafdb":
+                classnames = ['surprise', 'fear', 'disgust', 'happiness', 'sadness', 'anger']
 
             # create heatplot from confusion matrix
             cnfmat = make_cnfmat_plot(labels=all_labels,

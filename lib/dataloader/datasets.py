@@ -38,7 +38,12 @@ class DatasetBase(Dataset):
 
     def __load_image__(self, path):
         img = cv.imread(path)
+        print(
+            img
+        )
+
         if self.train:
+            # load bigger size image to apply random cropping while training ckp on fmpn/fmg (small dataset)
             img = cv.resize(img, (self.args.load_size, self.args.load_size))
         else:
             img = cv.resize(img, (self.args.final_size, self.args.final_size))
@@ -85,18 +90,111 @@ class DatasetBase(Dataset):
 
 
 class RafDB(DatasetBase):
-    def __init__(self, args, train: bool, transform=None, valid=False, ckp_label_type=False):
-        pass
+    """
+    Classes:
+    1: Surprise
+    2: Fear
+    3: Disgust
+    4: Happiness
+    5: Sadness
+    6: Anger
+    7: Neutral
+
+    convert them to
+    0 surprise, 1 fear, 2 disgust, 3 happiness, 4 sadness, 5 anger, 6 neutral
+
+    ckp labels for loading masks
+    0: anger
+    1: contempt
+    2: disgust
+    3: fear
+    4: happiness
+    5: sadness
+    6: surprise
+
+    """
+
+    def __init__(self, args, train: bool, transform=None, valid=False, ckp_label_type=False, remove_class=None):
+        """
+        :param args:
+        :param train:
+        :param transform:
+        :param valid:
+        :param ckp_label_type: used for loading the mask if training fmpn network
+        :param remove_class: original class label of emotion to remove from data
+        """
+        self.train = train
+        self.transform = transform
+        self.remove_class = remove_class
+        self.ckp_label_type = ckp_label_type
+        super(RafDB, self).__init__(args, train=train, valid=valid)
+        self.__load_file__()
+        self.__remove_emotion__()
+
+    def __remove_emotion__(self):
+        """remove a given emotion from the dataset"""
+        print("remove class nr. {}".format(self.remove_class))
+        if isinstance(self.remove_class, int):
+            self.data = self.data[self.data["label"] != self.remove_class]
+
+    def convert_label(self, label):
+        # modify label by subtracting 1
+        return label - 1
+
+    def convert_label_to_masklabel(self, label):
+        """convert modified label to ckp mask labels for loading the specific mask jpg."""
+        # only use this if you want to load masks for training fmpn network
+        ckplabels = [6, 3, 2, 4, 5, 0, -1]
+        return ckplabels[label]
 
     def __len__(self):
-        pass
+        return len(self.data)
 
-    def __getitem__(self, item):
-        pass
+    def __getitem__(self, idx):
+        label = self.data.iloc[[idx]]["label"].values
+        file_name = self.data.iloc[[idx]]["file_name"].values[0]
+
+        if self.train:
+            filename = file_name[0:11] + "_aligned" + file_name[11:15]
+        elif not self.train and not self.valid:
+            file_name = file_name[0:9] + "_aligned" + file_name[9:14]
+        elif self.valid and not self.train:
+            file_name = file_name[0:9] + "_aligned" + file_name[9:14]
+
+        img_path = self.args.rafdb_imgs + file_name
+
+        print("image path to load inside getitem: {0} \n".format(img_path))
+
+        img = self.__load_image__(img_path)
+        img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+        img_gray = np.expand_dims(img_gray, axis=-1)  # (W;H;1)
+
+        # convert label to ckp label
+        label = self.convert_label(label)
+
+        if self.ckp_label_type:  # use this if you want to train the fmpn
+            mask_label = self.convert_label_to_masklabel(label[0])
+
+            mask = self.__load_mask__(mask_label)
+            sample = {'image': img,
+                      'image_gray': img_gray,
+                      'label': label[0],
+                      'mask': mask,
+                      'img_path': img_path}
+        else:
+            sample = {'image': img,
+                      'image_gray': img_gray,
+                      'label': label[0]}
+
+        if self.transform:
+            sample = self.transform(sample)
+        return sample
 
     def __load_file__(self):
         """load the .csv file"""
-        pass
+        path = self.args.rafdb + self.splitname
+        print("Loading {0} from {1}".format(self.splitname, path))
+        self.data = pd.read_csv(path)
 
 
 class CKP(DatasetBase):
@@ -266,7 +364,7 @@ class FER2013(DatasetBase):
         #           'image_gray': img_gray,
         #           'label': label}
 
-        if self.ckp_label_type: # label type for training fmpn
+        if self.ckp_label_type:  # label type for training fmpn
             sample = {'image': img,  # 3 channel image
                       'image_gray': img_gray,  # 1 channel image
                       'label': self.convert_label(label[0]),
@@ -369,6 +467,34 @@ def get_fer2013(args, batch_size=8, ckp_label_type=False, shuffle=True, num_work
     train_ds = FER2013(train=True, args=args, transform=transforms, ckp_label_type=ckp_label_type)
     test_ds = FER2013(train=False, args=args, transform=transforms_test, valid=False, ckp_label_type=ckp_label_type)
     valid_ds = FER2013(train=False, args=args, transform=transforms_test, valid=True, ckp_label_type=ckp_label_type)
+
+    train_loader = DataLoader(dataset=train_ds,
+                              batch_size=batch_size,
+                              shuffle=shuffle,
+                              num_workers=num_workers,
+                              drop_last=drop_last)
+
+    test_loader = DataLoader(dataset=test_ds,
+                             batch_size=batch_size,
+                             shuffle=shuffle,
+                             num_workers=num_workers,
+                             drop_last=drop_last)
+
+    valid_loader = DataLoader(dataset=valid_ds,
+                              batch_size=batch_size,
+                              shuffle=shuffle,
+                              num_workers=num_workers,
+                              drop_last=drop_last)
+
+    return train_loader, test_loader, valid_loader
+
+
+def get_rafdb(args, batch_size=8, ckp_label_type=False, shuffle=True, num_workers=4, drop_last=False, remove_class=None):
+    transforms = tv.transforms.Compose([RafdbToTensor()])
+    transforms_test = tv.transforms.Compose([RafdbToTensor()])
+    train_ds = RafDB(train=True, args=args, transform=transforms, ckp_label_type=ckp_label_type, remove_class=remove_class)
+    test_ds = RafDB(train=False, args=args, transform=transforms_test, valid=False, ckp_label_type=ckp_label_type, remove_class=remove_class)
+    valid_ds = RafDB(train=False, args=args, transform=transforms_test, valid=True, ckp_label_type=ckp_label_type, remove_class=remove_class)
 
     train_loader = DataLoader(dataset=train_ds,
                               batch_size=batch_size,
@@ -557,6 +683,28 @@ class AffectNetToTensor(object):
         image = image.transpose((2, 0, 1))
         return {'image': to.from_numpy(image),
                 'label': to.tensor(label)}
+
+
+class RafdbToTensor(object):
+    def __call__(self, sample):
+        image = sample['image']
+        image_gray = sample['image_gray']
+        label = sample['label']
+
+        image = image.transpose((2, 0, 1))
+        image_gray = image_gray.transpose((2, 0, 1))
+
+        if 'mask' in sample.keys():
+            mask = sample['mask']
+            mask = mask.transpose((2, 0, 1))
+            return {'image': to.from_numpy(image),
+                    'image_gray': to.from_numpy(image_gray),
+                    'mask': to.from_numpy(mask),
+                    'label': to.tensor(label)}
+        else:
+            return {'image': to.from_numpy(image),
+                    'image_gray': to.from_numpy(image_gray),
+                    'label': to.tensor(label)}
 
 
 class Fer2013ToTensor(object):

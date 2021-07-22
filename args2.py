@@ -74,6 +74,7 @@ class Setup(object):
         # rafdb paths
         parser.add_argument('--rafdb_labelfile', type=str)
         parser.add_argument('--rafdb', type=str, default="./datasets/rafdb/")
+        parser.add_argument('--rafdb_imgs', type=str, default="./datasets/rafdb/aligned/")
 
         # densenet params
         parser.add_argument('--dn_growth', type=int, default=32, help="growth rate of densenet")
