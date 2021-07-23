@@ -629,8 +629,7 @@ def resnet18(pretrained=False, n_classes=7):
     ""
     if pretrained:
         print("Loading pretrained model...")
-        res = tv.models.resnet18(transform_input=True,
-                                 init_weights=False)
+        res = tv.models.resnet18(pretrained=True)
         state_dict = to.hub.load_state_dict_from_url('https://download.pytorch.org/models/resnet18-5c106cde.pth')
         state = {k: v for k, v in state_dict.items() if k in res.state_dict()}
         res.load_state_dict(state)
