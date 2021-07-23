@@ -1,5 +1,6 @@
 from lib.agents.inc_agent import InceptionAgent
 from lib.agents.densenet_agent import DenseNetAgent
+from lib.agents.resnet_agent import ResNetAgent
 from lib.agents.fmpn_agent import FmpnAgent
 import lib.eval.eval_utils as eval
 
@@ -17,7 +18,8 @@ class Runner:
             print("Initializing DenseNet Network...")
             model = DenseNetAgent(self.args)
         elif self.args.model_to_train == "resnet18":
-            model = 0  # :TODO: IMPLEMENT AGENT
+            print("Initializing ResNet18 Network...")
+            model = ResNetAgent(self.args)
         elif self.args.model_to_train == "fmg":
             model = 0
         elif self.args.model_to_train == "fmpn":

@@ -636,10 +636,13 @@ def resnet18(pretrained=False, n_classes=7):
         res.load_state_dict(state)
 
         res.fc = nn.Linear(in_features=res.fc.in_features, out_features=n_classes)
-
+        to.nn.init.xavier_normal_(res.fc.weight.data, gain=0.02)
+        to.nn.init.constant_(res.fc.bias.data, 0.0)
     else:
-        pass
-    return None
+        print("Loading non pretrained model...")
+        res = tv.models.resnet18(num_classes=n_classes)
+        res.fc = nn.Linear(in_features=res.fc.in_features, out_features=n_classes)
+    return res
 
 
 def inceptionv3(pretrained=False, n_classes=7):
@@ -665,6 +668,9 @@ def inceptionv3(pretrained=False, n_classes=7):
         inc = tv.models.Inception3(num_classes=n_classes)
         inc.fc = nn.Linear(in_features=2048, out_features=n_classes)
     return inc
+
+
+
 
 
 def densenet121(args, pretrained=False):

@@ -95,9 +95,6 @@ class DenseNetAgent(Agent):
     def __create_folders__(self):
         super(DenseNetAgent, self).__create_folders__(self.name)
 
-    def __create_folders__(self):
-        super(DenseNetAgent, self).__create_folders__(self.name)
-
     def save_resultlists_as_dict(self, path):
         print("\nSaving current results as dict...\n")
         # print("train_loss: \n", self.list_train_loss)

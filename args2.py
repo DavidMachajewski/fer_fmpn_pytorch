@@ -14,7 +14,7 @@ class Setup(object):
         parser.add_argument('--gpu_id', type=int, default=3, help='id of gpu to train on. Note: Check if this GPU is free before using it')
         parser.add_argument('--model_to_train', type=str, default='fmpn', help='["fmg" | "fmpn" | "resnet18" | "incv3" | "densenet | "vgg"]')
         parser.add_argument('--epochs', type=int, default=2, help="# of total epochs to train.")
-        parser.add_argument('--pretrained', type=int, default=0, help="Loading the pretrained model (Default=0). [0, 1]. "
+        parser.add_argument('--pretrained', type=int, default=0, help="Loading the pretrained model (Default=0). [0, 1]."
                                                                            "You need to provide path to the model.")
         parser.add_argument('--fmpn_cn', type=str, default="inc_v3", help="name of classifier model to use. ['inc_v3 | resnet18']")
         parser.add_argument('--fmpn_cn_pretrained', type=int, default=0, help="Loading imageNet pretrained cn? [0|1]")
