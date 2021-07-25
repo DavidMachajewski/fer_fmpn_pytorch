@@ -669,6 +669,42 @@ def inceptionv3(pretrained=False, n_classes=7):
     return inc
 
 
+class SFMG(nn.Module):
+    def __init__(self):
+        super(SFMG, self).__init__()
+
+    def forward(self, x):
+        pass
+
+
+class SCNN1(nn.Module):
+    """
+    Simple CNN 1
+
+    rafdb dim 100x100
+    fer dim 48x48
+
+    16 filters of size 6x6
+    (100 - 6 + 2*0)/2 + 1 => (48, 48, 16)
+    4x4 maxpooling with stride 2 makes
+    (48 - 4 + 2*0)/2 + 1 => (23, 23, 16) """
+    def __init__(self, args):
+        self.args = args
+        super(SCNN1, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=6, stride=2, padding=0)
+        self.relu1 = nn.ReLU()
+        self.maxpool = nn.MaxPool2d(kernel_size=4, stride=2)
+
+        self.fc = nn.Linear(in_features=16, out_features=self.args.n_classes)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.relu1(x)
+        x = self.maxpool(x)
+        return self.fc(x)
+
+
+
 
 
 

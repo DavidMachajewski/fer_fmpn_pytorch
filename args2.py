@@ -19,7 +19,7 @@ class Setup(object):
         parser.add_argument('--fmpn_cn', type=str, default="inc_v3", help="name of classifier model to use. ['inc_v3 | resnet18']")
         parser.add_argument('--fmpn_cn_pretrained', type=int, default=0, help="Loading imageNet pretrained cn? [0|1]")
 
-        parser.add_argument('--dataset', type=str, default='ckp', help="[ckp|fer|affectnet]")
+        parser.add_argument('--dataset', type=str, default='ckp', help="[ckp|fer|affectnet|rafdb]")
         parser.add_argument('--n_classes', type=int, default=7, help="# of classes. E.g. ckp has 7.")
         parser.add_argument('--data_augmentation', type=int, default=1, help="Use data augmentation for small datasets.")
         parser.add_argument('--save_samples', type=int, default=0, help="Save some images samples from training")

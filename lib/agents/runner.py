@@ -36,6 +36,8 @@ class Runner:
             model.run()
             if self.args.dataset == "fer":
                 eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl, save_to=model.train_plots, valid_dl=model.valid_dl, n_classes=self.args.n_classes, classnames=["anger", "disgust", "fear", "happy", "sadness", "surprise"])
+            elif self.args.dataset == "rafdb":
+                eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl, save_to=model.train_plots, valid_dl=model.valid_dl, n_classes=self.args.n_classes, classnames=['surprise', 'fear', 'disgust', 'happiness', 'sadness', 'anger'])
             else:
                 eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl,
                                                save_to=model.train_plots, valid_dl=model.valid_dl,
