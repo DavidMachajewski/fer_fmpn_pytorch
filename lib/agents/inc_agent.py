@@ -48,7 +48,8 @@ class InceptionAgent(Agent):
                                                                    batch_size=self.args.batch_size,
                                                                    shuffle=True,
                                                                    num_workers=self.args.num_workers,
-                                                                   drop_last=True)
+                                                                   drop_last=True,
+                                                                   remove_class=self.args.remove_class)
             print("Loaded rafdb dataset")
 
         self.opt = self.__init_optimizer__()
@@ -246,7 +247,12 @@ class InceptionAgent(Agent):
             elif self.args.dataset == "fer":
                 classnames = ["anger", "disgust", "fear", "happy", "sadness", "surprise"]
             elif self.args.dataset == "rafdb":
-                classnames = ['surprise', 'fear', 'disgust', 'happiness', 'sadness', 'anger']
+                # :TODO: MOVE ALL THIS CLASSNAMES AS ARRAY TO DATASET SO YOU CAN USE
+                #   LABELS AS ATTRIBUTE FROM THE DATASET CLASS
+                if self.args.n_classes == 6:
+                    classnames = ['surprise', 'fear', 'disgust', 'happiness', 'sadness', 'anger']
+                elif self.args.n_classes == 7:
+                    classnames = ['surprise', 'fear', 'disgust', 'happiness', 'sadness', 'anger', 'neutral']
 
             # create heatplot from confusion matrix
             cnfmat = make_cnfmat_plot(labels=all_labels,
@@ -289,6 +295,17 @@ class InceptionAgent(Agent):
             print(roc_score)
 
             return epoch_val_loss, epoch_val_acc
+
+    def inference(self, batch):
+        self.model.eval()
+
+        images = batch["image"].to(self.device)
+        labels = batch["label"].to(self.device)
+
+        classifications = self.model(images)
+        classifications_prob = torch.softmax(classifications, dim=-1)
+
+        return classifications_prob, labels
 
     def run(self):
         self.__create_folders__()

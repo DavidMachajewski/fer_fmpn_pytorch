@@ -68,7 +68,7 @@ class FmpnAgent(Agent):
                                                                    shuffle=True,
                                                                    num_workers=self.args.num_workers,
                                                                    drop_last=True,
-                                                                   remove_class=7)  # remove neutral class
+                                                                   remove_class=self.args.remove_class)  # remove neutral class
 
         self.loss_fmg_fn = nn.MSELoss()
         self.loss_cn_fn = nn.CrossEntropyLoss()

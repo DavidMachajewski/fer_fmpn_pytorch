@@ -1,0 +1,1 @@
+"""agent for the simple cnn architectures"""

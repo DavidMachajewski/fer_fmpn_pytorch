@@ -6,6 +6,15 @@ import csv
 import pandas as pd
 
 
+def average_confusion_matrix(folder):
+    """Create the average of n confusion matrices
+    1. Find all paths to all cnfmat.txt files
+    2. Load all cnf matrices one by one and add to a initial one
+    3. Create the average confusion matrix like usually
+    """
+    pass
+
+
 def clean_rafdb(path):
     """ This function removes all corrupted images from rafdb aligned folder
     and saves the corrupted image filenames to .txt file

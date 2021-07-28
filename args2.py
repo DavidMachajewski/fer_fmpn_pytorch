@@ -21,6 +21,7 @@ class Setup(object):
 
         parser.add_argument('--dataset', type=str, default='ckp', help="[ckp|fer|affectnet|rafdb]")
         parser.add_argument('--n_classes', type=int, default=7, help="# of classes. E.g. ckp has 7.")
+        parser.add_argument('--remove_class', type=int, default=None, help="remove class nr. 7 (neutral) of rafdb for example")
         parser.add_argument('--data_augmentation', type=int, default=1, help="Use data augmentation for small datasets.")
         parser.add_argument('--save_samples', type=int, default=0, help="Save some images samples from training")
 

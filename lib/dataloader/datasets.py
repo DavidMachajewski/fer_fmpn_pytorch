@@ -134,6 +134,7 @@ class RafDB(DatasetBase):
         """remove a given emotion from the dataset"""
         # print("remove class nr. {}".format(self.remove_class))
         if isinstance(self.remove_class, int):
+            print("Removing class nr. {}".format(self.remove_class))
             self.data = self.data[self.data["label"] != self.remove_class]
 
     def convert_label(self, label):

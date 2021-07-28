@@ -37,7 +37,15 @@ class Runner:
             if self.args.dataset == "fer":
                 eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl, save_to=model.train_plots, valid_dl=model.valid_dl, n_classes=self.args.n_classes, classnames=["anger", "disgust", "fear", "happy", "sadness", "surprise"])
             elif self.args.dataset == "rafdb":
-                eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl, save_to=model.train_plots, valid_dl=model.valid_dl, n_classes=self.args.n_classes, classnames=['surprise', 'fear', 'disgust', 'happiness', 'sadness', 'anger'])
+                if self.args.n_classes == 6:
+                    print("rafdb 6 classes")
+                    eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl, save_to=model.train_plots, valid_dl=model.valid_dl, n_classes=self.args.n_classes, classnames=['surprise', 'fear', 'disgust', 'happiness', 'sadness', 'anger'])
+                elif self.args.n_classes == 7:
+                    print("rafdb 7 classes")
+                    eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl,
+                                                   save_to=model.train_plots, valid_dl=model.valid_dl,
+                                                   n_classes=self.args.n_classes,
+                                                   classnames=['surprise', 'fear', 'disgust', 'happiness', 'sadness', 'anger', 'neutral'])
             else:
                 eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl,
                                                save_to=model.train_plots, valid_dl=model.valid_dl,
