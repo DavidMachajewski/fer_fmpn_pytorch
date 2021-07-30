@@ -478,13 +478,7 @@ class FmpnAgent(Agent):
         return epoch_total_val_loss, epoch_val_acc, epoch_fmg_val_loss, epoch_cn_val_loss
 
     def calc_accuracy(self, predictions, labels):
-        """take softmax outputs"""
-        # print("Predictions: \n", predictions)
-        # print("Labels: \n", labels)
-        #
-        # :TODO: dont forget softmax after cn ooutput!
-        # cn output is not a distribution
-        #
+        """take softmax(logits) outputs"""
         classes = torch.argmax(predictions, dim=-1)
         # print("Classes after argmax: \n", classes)
         return torch.mean((classes == labels).float())
