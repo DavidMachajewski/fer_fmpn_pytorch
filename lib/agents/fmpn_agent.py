@@ -116,7 +116,7 @@ class FmpnAgent(Agent):
             return inceptionv3(pretrained=self.args.fmpn_cn_pretrained, n_classes=self.args.n_classes)
 
     def loss_total_fn(self, loss_fmg, loss_cn):
-        """10, 1 are lambda1, lambda2 - add to args!!!"""
+        """0.1, 1 are lambda1, lambda2 - add to args!!!"""
         return self.args.lambda_fmg * loss_fmg + self.args.lambda_cn * loss_cn  # lambda1, lambda2 to args!
 
     def __adjust_lr__(self):
@@ -357,8 +357,8 @@ class FmpnAgent(Agent):
             # save images
             if self.args.save_samples:
                 # :TODO: make an array with epochs when to save images e.g. [299, 350, 400, 450, 499]
-                #if self.tmp_epoch == 299 or self.tmp_epoch % 100 == 0:
-                if self.tmp_epoch in [0, 49, 99, 149, 199]:
+                # if self.tmp_epoch == 299 or self.tmp_epoch % 100 == 0:
+                if self.tmp_epoch in [299, 349, 399, 449, 499]:
                     if i < 1:
                         for idx in range(len(predicted_masks)):
                             save_tensor_img(img=images[idx].cpu().detach(),
