@@ -358,7 +358,7 @@ class FmpnAgent(Agent):
             if self.args.save_samples:
                 # :TODO: make an array with epochs when to save images e.g. [299, 350, 400, 450, 499]
                 # if self.tmp_epoch == 299 or self.tmp_epoch % 100 == 0:
-                if self.tmp_epoch in [299, 349, 399, 449, 499]:
+                if self.tmp_epoch in [299, 349, 399, 449, 498]:
                     if i < 1:
                         for idx in range(len(predicted_masks)):
                             save_tensor_img(img=images[idx].cpu().detach(),
