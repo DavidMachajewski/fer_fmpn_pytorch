@@ -2,7 +2,9 @@ from lib.agents.inc_agent import InceptionAgent
 from lib.agents.densenet_agent import DenseNetAgent
 from lib.agents.resnet_agent import ResNetAgent
 from lib.agents.fmpn_agent import FmpnAgent
+from lib.agents.scnn_agent import SCNNAgent
 import lib.eval.eval_utils as eval
+
 
 
 class Runner:
@@ -20,8 +22,11 @@ class Runner:
         elif self.args.model_to_train == "resnet18":
             print("Initializing ResNet18 Network...")
             model = ResNetAgent(self.args)
+        elif self.args.model_to_train == "scnn":
+            print("Initializing SCNN (Simple Convolutional Neural Network) nr. {0}...".format(self.args.scnn_nr))
+            model = SCNNAgent(self.args)
         elif self.args.model_to_train == "fmg":
-            model = 0
+            model = 0  # :TODO: AGG TO ARGS SO THAT WE CAN RUN IT FROM TERMINAL
         elif self.args.model_to_train == "fmpn":
             print("Initializing Facial Motion Prior Network")
             model = FmpnAgent(self.args)

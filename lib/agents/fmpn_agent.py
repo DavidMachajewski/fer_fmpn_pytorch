@@ -334,7 +334,6 @@ class FmpnAgent(Agent):
             self.save_resultlists_as_dict(self.train_logs_path)
 
     def train_epoch(self):
-        print("train epoch...")
         epoch_loss = 0.0
         epoch_fmg_loss = 0.0
         epoch_cn_loss = 0.0
@@ -404,7 +403,9 @@ class FmpnAgent(Agent):
 
             fmg_loss = self.loss_fmg_fn(predicted_masks, label_masks)
             # cn_loss = self.loss_cn_fn(classifications.logits, labels)
-            cn_loss = self.loss_cn_fn(classifications_soft, labels)
+            #
+            #
+            cn_loss = self.loss_cn_fn(classifications.logits, labels)
 
             epoch_fmg_loss += fmg_loss.item()
             epoch_cn_loss += cn_loss.item()
@@ -450,7 +451,10 @@ class FmpnAgent(Agent):
                 # print("classification shape:", np.shape(classifications))
                 classification_prob = torch.softmax(classifications, dim=-1)
                 # print("class after softmax: ", classification_prob)
-                classifications = classification_prob
+
+                #
+                # classifications = classification_prob
+                #
 
                 fmg_loss = self.loss_fmg_fn(predicted_masks, label_masks)
 
@@ -462,7 +466,7 @@ class FmpnAgent(Agent):
                 epoch_cn_val_loss += cn_loss.item()
 
                 total_loss = self.loss_total_fn(fmg_loss, cn_loss)
-                epoch_val_acc += self.calc_accuracy(classifications, labels)
+                epoch_val_acc += self.calc_accuracy(classification_prob, labels)
 
                 epoch_total_val_loss += total_loss.item()
 
@@ -474,6 +478,7 @@ class FmpnAgent(Agent):
         return epoch_total_val_loss, epoch_val_acc, epoch_fmg_val_loss, epoch_cn_val_loss
 
     def calc_accuracy(self, predictions, labels):
+        """take softmax outputs"""
         # print("Predictions: \n", predictions)
         # print("Labels: \n", labels)
         #
@@ -536,7 +541,10 @@ class FmpnAgent(Agent):
                 # print("classification shape:", np.shape(classifications))
                 classification_prob = torch.softmax(classifications, dim=-1)
                 # print("class after softmax: ", classification_prob)
-                classifications = classification_prob
+
+                #
+                # classifications = classification_prob
+                #
 
                 fmg_loss = self.loss_fmg_fn(predicted_masks, label_masks)
 
@@ -553,10 +561,10 @@ class FmpnAgent(Agent):
 
                 # pass classifications to all_predictions tensor
                 # all_predictions = torch.cat((all_predictions, torch.argmax(classifications, dim=-1)))
-                all_predictions = torch.cat((all_predictions, torch.argmax(classifications, dim=-1)))
+                all_predictions = torch.cat((all_predictions, torch.argmax(classification_prob, dim=-1)))
                 all_labels = torch.cat((all_labels, labels))
 
-                batch_val_acc = self.calc_accuracy(classifications, labels)
+                batch_val_acc = self.calc_accuracy(classification_prob, labels)
                 epoch_val_acc += batch_val_acc
 
                 # tbatch.set_postfix(val_loss="{:.3f}".format(total_loss, prec='.3'),

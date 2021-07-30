@@ -2,6 +2,7 @@ import os
 import pickle
 import re
 
+import torch
 from tqdm import tqdm
 import time
 import torch as to
@@ -655,9 +656,6 @@ def inceptionv3(pretrained=False, n_classes=7):
         state = {k: v for k, v in state_dict.items() if k in inc.state_dict()}
         inc.load_state_dict(state)
         print("Loaded ")
-        #
-        # :TODO: flexible number of classes! args.n_classes
-        #
         print("FC layer in inc. classes: ", n_classes)
         inc.fc = nn.Linear(in_features=2048, out_features=n_classes)
         to.nn.init.xavier_normal_(inc.fc.weight.data, gain=0.02)
@@ -669,7 +667,14 @@ def inceptionv3(pretrained=False, n_classes=7):
     return inc
 
 
+def get_simple_cnn(args) -> nn.Module:
+    if args.scnn_nr == 0:
+        scnn = SCNN0(args)
+    return scnn
+
+
 class SFMG(nn.Module):
+    """Simple facial mask generator"""
     def __init__(self):
         super(SFMG, self).__init__()
 
@@ -677,31 +682,44 @@ class SFMG(nn.Module):
         pass
 
 
-class SCNN1(nn.Module):
+class SCNN0(nn.Module):
     """
     Simple CNN 1
 
     rafdb dim 100x100
     fer dim 48x48
 
+    ((WIDTH - KERNEL_SIZE + 2*PADDING)/STRIDE ) + 1 = NEW_WIDTH
+
+    rafdb:
     16 filters of size 6x6
     (100 - 6 + 2*0)/2 + 1 => (48, 48, 16)
     4x4 maxpooling with stride 2 makes
-    (48 - 4 + 2*0)/2 + 1 => (23, 23, 16) """
-    def __init__(self, args):
-        self.args = args
-        super(SCNN1, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=6, stride=2, padding=0)
-        self.relu1 = nn.ReLU()
-        self.maxpool = nn.MaxPool2d(kernel_size=4, stride=2)
+    (48 - 4 + 2*0)/2 + 1 => (23, 23, 16)
+    flatten: (8464)
 
-        self.fc = nn.Linear(in_features=16, out_features=self.args.n_classes)
+    fer:
+    conv1: (48 - 6 + 2*0)/2 + 1 => (22, 22, 16)
+    maxpool: (22 - 4 + 2*0)/2 + 1 => (10, 10, 16)
+    flatten: (1600)
+    """
+    def __init__(self, args):
+        super(SCNN0, self).__init__()
+        self.args = args
+        self.conv1 = nn.Conv2d(3, 20, 5, 1)
+        self.conv2 = nn.Conv2d(20, 50, 5, 1)
+        self.fc1 = nn.Linear(50*22*22, 500)
+        self.fc2 = nn.Linear(500, self.args.n_classes)
 
     def forward(self, x):
-        x = self.conv1(x)
-        x = self.relu1(x)
-        x = self.maxpool(x)
-        return self.fc(x)
+        x = F.relu(self.conv1(x))
+        x = F.max_pool2d(x, 2, 2)
+        x = F.relu(self.conv2(x))
+        x = F.max_pool2d(x, 2, 2)
+        x = x.view(-1, 50*22*22)
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
 
 
 
