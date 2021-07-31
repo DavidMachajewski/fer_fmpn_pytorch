@@ -101,10 +101,6 @@ class InceptionAgent(Agent):
 
     def save_resultlists_as_dict(self, path):
         print("\nSaving current results as dict...\n")
-        # print("train_loss: \n", self.list_train_loss)
-        # print("train_acc: \n", self.list_train_acc)
-        # print("val_loss: \n", self.list_test_loss)
-        # print("val_acc: \n", self.list_test_acc)
         dict = {
             'train_loss': self.list_train_loss,
             'train_acc': self.list_train_acc,
@@ -160,28 +156,18 @@ class InceptionAgent(Agent):
     def train_epoch(self):
         """Train loop for one epoch."""
         epoch_loss, epoch_acc = 0.0, 0.0
-
         for i, batch in enumerate(self.train_dl):
-            # print("batch {0} out of {1}".format(i, len(self.train_dl)))
             images = batch["image"].to(self.device)
-            # print("image: ", images)
             labels = batch["label"].to(self.device)
-            # print("label: ", labels)
 
             self.opt.zero_grad()
-
-            #
-            #
-            # :TODO: cls = self.model(images).logits
-            #        cls_Soft = torch.softmax(cls)
-            #
 
             cls = self.model(images).logits
             cls_soft = torch.softmax( cls, dim=-1 )
 
             loss = self.loss_fn(cls, labels)
-
             loss.backward()
+
             self.opt.step()
 
             epoch_loss += loss.item()
