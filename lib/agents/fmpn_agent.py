@@ -358,7 +358,7 @@ class FmpnAgent(Agent):
                 # if self.tmp_epoch == 299 or self.tmp_epoch % 100 == 0:
                 # if self.tmp_epoch in [299, 349, 399, 449, 498]:
                 if self.tmp_epoch in [0, 49, 99, 149, 199]:
-                    if i < 1:
+                    if i < 2:  # nr_batches to save
                         for idx in range(len(predicted_masks)):
                             save_tensor_img(img=images[idx].cpu().detach(),
                                             path=self.train_plots + "imgorg_"
