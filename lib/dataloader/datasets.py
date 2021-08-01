@@ -469,6 +469,7 @@ def get_ckp(args, batch_size=8, shuffle=True, num_workers=2, drop_last=False, va
 def get_fer2013(args, batch_size=8, ckp_label_type=False, shuffle=True, num_workers=4, drop_last=False):
     transforms = tv.transforms.Compose([Fer2013ToTensor()])
     transforms_test = tv.transforms.Compose([Fer2013ToTensor()])
+
     train_ds = FER2013(train=True, args=args, transform=transforms, ckp_label_type=ckp_label_type)
     test_ds = FER2013(train=False, args=args, transform=transforms_test, valid=False, ckp_label_type=ckp_label_type)
     valid_ds = FER2013(train=False, args=args, transform=transforms_test, valid=True, ckp_label_type=ckp_label_type)

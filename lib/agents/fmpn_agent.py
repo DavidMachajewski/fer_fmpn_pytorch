@@ -17,7 +17,6 @@ from lib.models.models import FacialMaskGenerator, PriorFusionNetwork, inception
 # for %i in (0) do python main.py --mode train --gpu_id 0 --model_to_train fmpn --epochs 500 --save_ckpt_intv 50 --load_size 320 --final_size 299 --load_ckpt_fmg_only 1 --fmpn_cn
 # inc_v3 --fmpn_cn_pretrained 1 --dataset ckp --batch_size 8 --scheduler_type linear_x --ckpt_fmg ./results/run_fmg_2021-04-14_13-57-45/train_fmg_2021-04-14_13-57-45\ckpt/fmg_ckpt.pth.tar --trainsplit train_ids_%i.csv --testsplit test_i
 # ds_%i.csv
-
 #################
 
 
@@ -46,7 +45,6 @@ class FmpnAgent(Agent):
 
         #
         # :TODO: LOADING DATALOADER CAN BE DONE BY EXTRA FUNCTION
-        #
         if self.args.dataset == "ckp":
             self.train_dl, self.test_dl, self.valid_dl = get_ckp(args=self.args,
                                                                  batch_size=self.args.batch_size,
@@ -358,7 +356,8 @@ class FmpnAgent(Agent):
             if self.args.save_samples:
                 # :TODO: make an array with epochs when to save images e.g. [299, 350, 400, 450, 499]
                 # if self.tmp_epoch == 299 or self.tmp_epoch % 100 == 0:
-                if self.tmp_epoch in [299, 349, 399, 449, 498]:
+                # if self.tmp_epoch in [299, 349, 399, 449, 498]:
+                if self.tmp_epoch in [0, 49, 99, 149, 299]:
                     if i < 1:
                         for idx in range(len(predicted_masks)):
                             save_tensor_img(img=images[idx].cpu().detach(),
