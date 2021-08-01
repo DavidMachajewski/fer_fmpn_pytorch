@@ -50,8 +50,8 @@ class Setup(object):
         parser.add_argument('--lr_init', type=float, default=0.0001, help='initial lr at start of fmg training')
         parser.add_argument('--lr_init_after', type=float, default=0.00001, help='initial lr after reloading fmg within fmpn network')
         parser.add_argument('--lr_end', type=int, default=0, help='linear scheduler decreases to this lr')
-        parser.add_argument('--start_lr_drop', type=int, default=150, help='epoch after which fmg lr is reduced')
-        parser.add_argument('--start_lr_drop_fmpn', type=int, default=400, help='epoch after which fmg lr is reduced')
+        parser.add_argument('--start_lr_drop', type=int, default=150, help='epoch after  fmg lr is reduced')
+        parser.add_argument('--start_lr_drop_fmpn', type=int, default=400, help='epoch after fmg lr is reduced')
 
         # path to datasets
         parser.add_argument('--trainsplit', type=str, default="train_ids_1.csv", help="[train_0.csv|train_1.csv|...|train_9.csv]")
