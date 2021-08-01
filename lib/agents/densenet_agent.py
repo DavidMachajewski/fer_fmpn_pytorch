@@ -164,16 +164,11 @@ class DenseNetAgent(Agent):
 
             self.opt.zero_grad()
 
-            # clsf = self.model(images).logits
             clsf = self.model(images)
-            # print(clsf)
-            cls_soft = torch.softmax(
-                clsf,
-                dim=-1
-            )
-            # print(cls_soft)
 
-            loss = self.loss_fn(cls_soft, labels)
+            cls_soft = torch.softmax(clsf, dim=-1)
+
+            loss = self.loss_fn(clsf, labels)
 
             loss.backward()
             self.opt.step()
@@ -195,12 +190,11 @@ class DenseNetAgent(Agent):
                 images = batch["image"].to(self.device)
                 labels = batch["label"].to(self.device)
 
-                cls_soft = torch.softmax(
-                    self.model(images),
-                    dim=-1
-                )
+                clsf = self.model(images)
 
-                loss = self.loss_fn(cls_soft, labels)
+                cls_soft = torch.softmax(clsf, dim=-1)
+
+                loss = self.loss_fn(clsf, labels)
 
                 epoch_val_loss += loss
                 epoch_val_acc += self.__calc_accuracy__(cls_soft, labels)
@@ -224,12 +218,11 @@ class DenseNetAgent(Agent):
                 images = batch["image"].to(self.device)
                 labels = batch["label"].to(self.device)
 
-                cls_soft = torch.softmax(
-                    self.model(images),
-                    dim=-1
-                )
+                clsf = self.model(images)
 
-                loss = self.loss_fn(cls_soft, labels)
+                cls_soft = torch.softmax(clsf, dim=-1)
+
+                loss = self.loss_fn(clsf, labels)
                 epoch_val_loss += loss
                 epoch_val_acc += self.__calc_accuracy__(cls_soft, labels)
 
