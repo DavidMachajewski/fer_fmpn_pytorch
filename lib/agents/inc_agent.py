@@ -22,7 +22,7 @@ class InceptionAgent(Agent):
         super(InceptionAgent, self).__init__(args)
         self.name = "incv3"
         self.args = args  # inception_pretrained to args
-        self.model = inceptionv3(pretrained=self.args.pretrained)
+        self.model = inceptionv3(pretrained=self.args.pretrained, n_classes=self.args.n_classes)
 
         self.epoch_counter = 0
 
