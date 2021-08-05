@@ -25,7 +25,9 @@ class FERUtils:
     def __load_csv__(self, args, remove_label = None):
         self.dataset = pd.read_csv(args.fer_images)
         if isinstance(remove_label, int):
+            print("removing label nr: ", remove_label)
             self.dataset = self.dataset[self.dataset["emotion"] != remove_label]
+        print("not removing label but saving whole dataset to 3 splits")
         self.train = self.dataset.loc[self.dataset['Usage'] == "Training"]
         self.test = self.dataset.loc[self.dataset['Usage'] == "PublicTest"]
         self.val = self.dataset.loc[self.dataset['Usage'] == "PrivateTest"]
@@ -199,26 +201,26 @@ class RafDBUtils:
 
 if __name__ == '__main__':
     args = Setup().parse()
-    # args.fer_images = "../../datasets/fer/fer2013.csv"
-    # args.fer = "../../datasets/fer/"
+    args.fer_images = "../../datasets/fer/fer2013.csv"
+    args.fer = "../../datasets/fer/"
     # create fer dataset but remove label neutral
-    # fer = FERUtils(args)
-    # fer.save_to_csv()
+    fer = FERUtils(args)
+    fer.save_to_csv()
 
     # data = fer.dataset.values
     # print(fer.dataset['Usage'].value_counts())
     # labels = data[:, 0]
     # pix = data[:, 1]
-    # print("test: ", pix)
-    args.trainsplit = "train_ids_0.csv"
-    args.rafdb_labelfile = "D:/datasets/RAFDB/basic/basic/EmoLabel/list_patition_label.txt"
-    args.rafdb = "D:/projects/pyprojects/fer_fmpn_pytorch/datasets/rafdb/"
-    args.rafdb_imgs = "D:/projects/pyprojects/fer_fmpn_pytorch/datasets/rafdb/aligned/"
+    # # print("test: ", pix)
+    # args.trainsplit = "train_ids_0.csv"
+    # args.rafdb_labelfile = "D:/datasets/RAFDB/basic/basic/EmoLabel/list_patition_label.txt"
+    # args.rafdb = "D:/projects/pyprojects/fer_fmpn_pytorch/datasets/rafdb/"
+    # args.rafdb_imgs = "D:/projects/pyprojects/fer_fmpn_pytorch/datasets/rafdb/aligned/"
     # raf = RafDBUtils(args=args)
 
-    rafdb = RafDB(args=args, train=True, ckp_label_type=True)
+    # rafdb = RafDB(args=args, train=True, ckp_label_type=True)
 
-    print(rafdb[0])
+    # print(rafdb[0])
 
 
 

@@ -40,7 +40,9 @@ class InceptionAgent(Agent):
                                                                      batch_size=self.args.batch_size,
                                                                      shuffle=True,
                                                                      num_workers=self.args.num_workers,
-                                                                     drop_last=True)
+                                                                     drop_last=True,
+                                                                     augmentation=self.args.augmentation,
+                                                                     remove_class=self.args.remove_class)
             print("Loaded fer dataset.")
         elif self.args.dataset == "rafdb":
             self.train_dl, self.test_dl, self.valid_dl = get_rafdb(args=self.args,
@@ -237,7 +239,10 @@ class InceptionAgent(Agent):
             if self.args.dataset == "ckp":
                 classnames = None
             elif self.args.dataset == "fer":
-                classnames = ["anger", "disgust", "fear", "happy", "sadness", "surprise"]
+                if self.args.n_classes == 6:
+                    classnames = ["anger", "disgust", "fear", "happy", "sadness", "surprise"]
+                elif self.args.n_classes == 7:
+                    classnames = ["anger", "disgust", "fear", "happy", "sadness", "surprise", "neutral"]
             elif self.args.dataset == "rafdb":
                 # :TODO: MOVE ALL THIS CLASSNAMES AS ARRAY TO DATASET SO YOU CAN USE
                 #   LABELS AS ATTRIBUTE FROM THE DATASET CLASS

@@ -168,11 +168,9 @@ class RafDB(DatasetBase):
         # resize image to final_size
         img = cv.resize(img, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
 
-
         img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
         img_gray = cv.resize(img_gray, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
         img_gray = np.expand_dims(img_gray, axis=-1)  # (W;H;1)
-
 
         # convert label to ckp label
         label = self.convert_label(label)
@@ -308,16 +306,32 @@ class FER2013(DatasetBase):
     3 -> 3 : happiness
     4 -> 4 : sadness
     5 -> 5 : surprise
-
     """
 
-    def __init__(self, args, train: bool, transform=None, valid=False, ckp_label_type=False):
+    def __init__(self, args, train: bool, transform=None, valid=False, ckp_label_type=False, remove_class=None):
+        """
+        :param args:
+        :param train:
+        :param transform:
+        :param valid:
+        :param ckp_label_type:
+        :param remove_class: remove class 6 if you do not need the neutral label (e.g. for training fmpn)
+        """
         self.train = train
         self.transform = transform
+        self.remove_class = remove_class
         super(FER2013, self).__init__(args, train=train, valid=valid)
         self.data = None
         self.ckp_label_type = ckp_label_type
         self.__load_file__()
+        self.__remove_emotion__()
+
+    def __remove_emotion__(self):
+        """remove a given emotion from the dataset"""
+        # print("remove class nr. {}".format(self.remove_class))
+        if isinstance(self.remove_class, int):
+            print("Removing class nr. {}".format(self.remove_class))
+            self.data = self.data[self.data["emotion"] != self.remove_class]
 
     def __load_file__(self):
         path = self.args.fer + self.splitname
@@ -335,7 +349,7 @@ class FER2013(DatasetBase):
         return image.reshape((48, 48))
 
     def convert_label(self, fer_label):
-        new_labels = [0, 1, 2, 3, 4, 5]
+        new_labels = [0, 1, 2, 3, 4, 5, 6]
         return new_labels[fer_label]
 
     def convert_label_to_masklabel(self, fer_label):
@@ -358,8 +372,14 @@ class FER2013(DatasetBase):
         # img = img * 1./255.
         img_gray = cv.normalize(img_gray, None, alpha=0, beta=1, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
         img = cv.cvtColor(img_gray, cv.COLOR_GRAY2RGB)
-        img_gray = cv.resize(img_gray, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
-        img = cv.resize(img, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
+
+        if self.train:
+            img_gray = cv.resize(img_gray, dsize=(self.args.load_size, self.args.load_size), interpolation=cv.INTER_CUBIC)
+            img = cv.resize(img, dsize=(self.args.load_size, self.args.load_size), interpolation=cv.INTER_CUBIC)
+        else:
+            img_gray = cv.resize(img_gray, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
+            img = cv.resize(img, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
+
         img_gray = np.expand_dims(img_gray, axis=-1)  # (W;H;1)
 
         if self.ckp_label_type:  # use this if you want to train the fmpn
@@ -374,7 +394,7 @@ class FER2013(DatasetBase):
                       'image_gray': img_gray,  # 1 channel image
                       'label': self.convert_label(label[0]),
                       'label_to_load_mask': self.convert_label_to_masklabel(label[0]),
-                      'mask': mask}  # get ckp emotion
+                      'mask': mask}  # get ckp explicit emotion to load correct mask
         else:  # original label type without neutral
             sample = {'image': img,
                       'image_gray': img_gray,
@@ -466,13 +486,21 @@ def get_ckp(args, batch_size=8, shuffle=True, num_workers=2, drop_last=False, va
         return train_loader, test_loader
 
 
-def get_fer2013(args, batch_size=8, ckp_label_type=False, shuffle=True, num_workers=4, drop_last=False):
-    transforms = tv.transforms.Compose([Fer2013ToTensor()])
-    transforms_test = tv.transforms.Compose([Fer2013ToTensor()])
+def get_fer2013(args, batch_size=8, ckp_label_type=False, shuffle=True, num_workers=4, drop_last=False,
+                augmentation=True, remove_class=None):
+    if augmentation:
+        transforms = tv.transforms.Compose([Fer2013RandomCrop(args), Fer2013ToTensor(), RandomFlip(), Fer2013Normalization(args)])
+        transforms_test = tv.transforms.Compose([Fer2013ToTensor(), Fer2013Normalization(args)])
+    else:
+        transforms = tv.transforms.Compose([Fer2013ToTensor(), Fer2013Normalization(args)])
+        transforms_test = tv.transforms.Compose([Fer2013ToTensor(), Fer2013Normalization(args)])
 
-    train_ds = FER2013(train=True, args=args, transform=transforms, ckp_label_type=ckp_label_type)
-    test_ds = FER2013(train=False, args=args, transform=transforms_test, valid=False, ckp_label_type=ckp_label_type)
-    valid_ds = FER2013(train=False, args=args, transform=transforms_test, valid=True, ckp_label_type=ckp_label_type)
+    train_ds = FER2013(train=True, args=args, transform=transforms, ckp_label_type=ckp_label_type,
+                       remove_class=remove_class)
+    test_ds = FER2013(train=False, args=args, transform=transforms_test, valid=False, ckp_label_type=ckp_label_type,
+                      remove_class=remove_class)
+    valid_ds = FER2013(train=False, args=args, transform=transforms_test, valid=True, ckp_label_type=ckp_label_type,
+                       remove_class=remove_class)
 
     train_loader = DataLoader(dataset=train_ds,
                               batch_size=batch_size,
@@ -495,12 +523,20 @@ def get_fer2013(args, batch_size=8, ckp_label_type=False, shuffle=True, num_work
     return train_loader, test_loader, valid_loader
 
 
-def get_rafdb(args, batch_size=8, ckp_label_type=False, shuffle=True, num_workers=4, drop_last=False, remove_class=None):
-    transforms = tv.transforms.Compose([RafdbToTensor()])
-    transforms_test = tv.transforms.Compose([RafdbToTensor()])
-    train_ds = RafDB(train=True, args=args, transform=transforms, ckp_label_type=ckp_label_type, remove_class=remove_class)
-    test_ds = RafDB(train=False, args=args, transform=transforms_test, valid=False, ckp_label_type=ckp_label_type, remove_class=remove_class)
-    valid_ds = RafDB(train=False, args=args, transform=transforms_test, valid=True, ckp_label_type=ckp_label_type, remove_class=remove_class)
+def get_rafdb(args, batch_size=8, ckp_label_type=False, shuffle=True, num_workers=4, drop_last=False,
+              augmentation=False, remove_class=None):
+    if augmentation:
+        pass
+    else:
+        transforms = tv.transforms.Compose([RafdbToTensor()])
+        transforms_test = tv.transforms.Compose([RafdbToTensor()])
+
+    train_ds = RafDB(train=True, args=args, transform=transforms, ckp_label_type=ckp_label_type,
+                     remove_class=remove_class)
+    test_ds = RafDB(train=False, args=args, transform=transforms_test, valid=False, ckp_label_type=ckp_label_type,
+                    remove_class=remove_class)
+    valid_ds = RafDB(train=False, args=args, transform=transforms_test, valid=True, ckp_label_type=ckp_label_type,
+                     remove_class=remove_class)
 
     train_loader = DataLoader(dataset=train_ds,
                               batch_size=batch_size,
@@ -564,13 +600,6 @@ class Normalization(object):
         label = sample['label']
         path = sample['img_path']
 
-        # This normalization applies to pytorch inceptionnet, resnet, densenet
-        #
-        # But this kind of normalization destroys some features within faces
-        # or increases the value and occupancy of shadows!
-        # :TODO: OUTCOMMENT THIS LINE AND CHECK ACCS WHILE TRAINING +
-        #   ADD CONDITION IF YOU WANT TO NORMALIZE THIS
-        #
         if self.args.norm_orig_img:
             image = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(image)
 
@@ -582,13 +611,47 @@ class Normalization(object):
 
 
 class Fer2013Normalization(object):
-    def __init__(self):
-        pass
+    def __init__(self, args):
+        self.args = args
 
     def __call__(self, sample):
         image = sample['image']
         label = sample['label']
-        pass
+
+        image = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(image)
+
+        return {'image': image,
+                'label': label}
+
+
+class Fer2013RandomCrop(object):
+    def __init__(self, args):
+        self.args = args
+
+    def __call__(self, sample):
+        image = sample['image']
+        label = sample['label']
+
+        h, w = image.shape[:2]
+        new_h, new_w = self.args.final_size, self.args.final_size
+
+        top = np.random.randint(0, h - new_h)
+        left = np.random.randint(0, w - new_w)
+
+        image = image[top: top + new_h, left: left + new_w]
+
+        image_gray = sample['image_gray']
+        image_gray = image_gray[top: top + new_h, left: left + new_w]
+        if "mask" in sample.keys():
+            mask = sample['mask']
+            return {'image': image,
+                    'image_gray': image_gray,
+                    'label': label,
+                    'mask': mask}
+        else:
+            return {'image': image,
+                    'image_gray': image_gray,
+                    'label': label}
 
 
 class RandomCrop(object):
@@ -627,17 +690,21 @@ class RandomFlip(object):
         image = sample['image']
         label = sample['label']
         image_gray = sample['image_gray']
-        mask = sample['mask']
-        path = sample["img_path"]
+        # path = sample["img_path"]
 
         image = tv.transforms.RandomHorizontalFlip(p=0.5)(image)
         image_gray = tv.transforms.RandomHorizontalFlip(p=0.5)(image_gray)
 
-        return {'image': image,
-                'image_gray': image_gray,
-                'label': label,
-                'mask': mask,
-                'img_path': path}
+        if 'mask' in sample.keys():
+            mask = sample['mask']
+            return {'image': image,
+                    'image_gray': image_gray,
+                    'label': label,
+                    'mask': mask}
+        else:
+            return {'image': image,
+                    'image_gray': image_gray,
+                    'label': label}
 
 
 class GrayScale(object):

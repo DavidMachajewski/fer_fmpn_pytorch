@@ -40,17 +40,17 @@ class Runner:
         if self.args.mode == "train":
             model.run()
             if self.args.dataset == "fer":
-                eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl, save_to=model.train_plots, valid_dl=model.valid_dl, n_classes=self.args.n_classes, classnames=["anger", "disgust", "fear", "happy", "sadness", "surprise"])
+                if self.args.n_classes == 6:
+                    eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl, save_to=model.train_plots, valid_dl=model.valid_dl, n_classes=self.args.n_classes, classnames=["anger", "disgust", "fear", "happy", "sadness", "surprise"])
+                elif self.args.n_classes == 7:
+                    eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl, save_to=model.train_plots, valid_dl=model.valid_dl, n_classes=self.args.n_classes, classnames=["anger", "disgust", "fear", "happy", "sadness", "surprise", "neutral"])
             elif self.args.dataset == "rafdb":
                 if self.args.n_classes == 6:
                     print("rafdb 6 classes")
                     eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl, save_to=model.train_plots, valid_dl=model.valid_dl, n_classes=self.args.n_classes, classnames=['surprise', 'fear', 'disgust', 'happiness', 'sadness', 'anger'])
                 elif self.args.n_classes == 7:
                     print("rafdb 7 classes")
-                    eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl,
-                                                   save_to=model.train_plots, valid_dl=model.valid_dl,
-                                                   n_classes=self.args.n_classes,
-                                                   classnames=['surprise', 'fear', 'disgust', 'happiness', 'sadness', 'anger', 'neutral'])
+                    eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl, save_to=model.train_plots, valid_dl=model.valid_dl, n_classes=self.args.n_classes, classnames=['surprise', 'fear', 'disgust', 'happiness', 'sadness', 'anger', 'neutral'])
             else:
                 eval.make_ds_distribution_plot(train_dl=model.train_dl, test_dl=model.test_dl,
                                                save_to=model.train_plots, valid_dl=model.valid_dl,

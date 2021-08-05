@@ -32,6 +32,7 @@ class Setup(object):
 
         parser.add_argument('--load_size', type=int, default=320, help='scale image to this size')
         parser.add_argument('--final_size', type=int, default=299, help='crop image to this size')
+        parser.add_argument('--augmentation', type=int, default=0, help='Use data augmentation for training')
 
         # optimizers
         parser.add_argument('--optimizer', type=str, default="adam", help='optimizer')
@@ -44,6 +45,8 @@ class Setup(object):
 
         # simple cnn
         parser.add_argument('--scnn_nr', type=int, default=0, help="Load one of the simple cnn models [0|1|2|...]")
+        parser.add_argument('--scnn_config', type=str, default='A', help="determine which configuration has to be loaded [A | B | C]")
+        parser.add_argument('--scnn_llfeatures', type=int, default=4096, help="width of dense layers")
 
         # schedulers
         parser.add_argument('--scheduler_type', type=str, default="linear_x", help='Scheduler for reducing lr ["linear_x" | "const"]')

@@ -1,6 +1,7 @@
 import os
 import pickle
 import re
+from typing import List, Union, cast
 
 import torch
 from tqdm import tqdm
@@ -706,24 +707,56 @@ class SCNN0(nn.Module):
     def __init__(self, args):
         super(SCNN0, self).__init__()
         self.args = args
-        self.conv1 = nn.Conv2d(3, 20, 5, 1)
-        self.conv2 = nn.Conv2d(20, 50, 5, 1)
-        self.fc1 = nn.Linear(50*22*22, 500)
-        self.fc2 = nn.Linear(500, self.args.n_classes)
+
+        self.avgplsize = 7
+        self.llfeat = self.args.scnn_llfeatures
+
+        self.arch_config = self.configuration(type=self.args.scnn_config)
+
+        self.features = self.build_layers(self.arch_config, batch_norm=False)
+        self.avgpool = nn.AdaptiveAvgPool2d((self.avgplsize, self.avgplsize))
+        self.classifier = nn.Sequential(
+            nn.Linear(int(self.arch_config[-2]) * self.avgplsize**2, self.llfeat),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(self.llfeat, self.llfeat),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(self.llfeat, self.args.n_classes)
+        )
+
+    def build_layers(self, config: List[Union[str, int]], batch_norm: bool = False):
+        """source: https://github.com/pytorch/vision/blob/16b9a40c1ca9cc3be3587625d3d58271f9fd88c2/torchvision/models/vgg.py#L69"""
+        in_channels = 3
+        layers: List[nn.Module] = []
+        for value in config:
+            if value == 'M':
+                layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
+            else:
+                # value = cast(int, value)  # num of output filters
+                value = int(value)
+                conv2d = nn.Conv2d(in_channels, value, kernel_size=3, padding=1)
+                if batch_norm:
+                    layers += [conv2d, nn.BatchNorm2d(value), nn.ReLU(inplace=True)]
+                else:
+                    layers += [conv2d, nn.ReLU(inplace=True)]
+                in_channels = value
+        print(layers)
+        return nn.Sequential(*layers)
+
+    def configuration(self, type: str = 'A'):
+        # configuration of output filter_sizes or pooling ops.
+        arch_config = {
+            'A': ['64', 'M']
+        }
+        return arch_config[type]
 
     def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = F.max_pool2d(x, 2, 2)
-        x = F.relu(self.conv2(x))
-        x = F.max_pool2d(x, 2, 2)
-        x = x.view(-1, 50*22*22)
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = self.features(x)
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        x = self.classifier(x)
         return x
-
-
-
-
 
 
 def densenet121(args, pretrained=False):

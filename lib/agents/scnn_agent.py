@@ -216,12 +216,10 @@ class SCNNAgent(Agent):
                 images = batch["image"].to(self.device)
                 labels = batch["label"].to(self.device)
 
-                cls_soft = torch.softmax(
-                    self.model(images),
-                    dim=-1
-                )
+                cls = self.model(images)
+                cls_soft = torch.softmax(cls, dim=-1)
 
-                loss = self.loss_fn(cls_soft, labels)
+                loss = self.loss_fn(cls, labels)
                 epoch_val_loss += loss
                 epoch_val_acc += self.__calc_accuracy__(cls_soft, labels)
 
