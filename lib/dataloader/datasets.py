@@ -168,12 +168,14 @@ class RafDB(DatasetBase):
         # resize image to final_size if augmentation is false
         if not self.args.augmentation:
             img = cv.resize(img, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
+            img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+            img_gray = cv.resize(img_gray, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
+            img_gray = np.expand_dims(img_gray, axis=-1)  # (W;H;1)
         else:
             img = cv.resize(img, dsize=(self.args.load_size, self.args.load_size), interpolation=cv.INTER_CUBIC)
-
-        img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-        img_gray = cv.resize(img_gray, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
-        img_gray = np.expand_dims(img_gray, axis=-1)  # (W;H;1)
+            img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+            img_gray = cv.resize(img_gray, dsize=(self.args.load_size, self.args.load_size), interpolation=cv.INTER_CUBIC)
+            img_gray = np.expand_dims(img_gray, axis=-1)  # (W;H;1)
 
         # convert label to ckp label
         label = self.convert_label(label)
