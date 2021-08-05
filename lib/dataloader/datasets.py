@@ -165,8 +165,11 @@ class RafDB(DatasetBase):
 
         img = self.__load_image__(img_path)
 
-        # resize image to final_size
-        img = cv.resize(img, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
+        # resize image to final_size if augmentation is false
+        if not self.args.augmentation:
+            img = cv.resize(img, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
+        else:
+            img = cv.resize(img, dsize=(self.args.load_size, self.args.load_size), interpolation=cv.INTER_CUBIC)
 
         img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
         img_gray = cv.resize(img_gray, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
@@ -525,11 +528,28 @@ def get_fer2013(args, batch_size=8, ckp_label_type=False, shuffle=True, num_work
 
 def get_rafdb(args, batch_size=8, ckp_label_type=False, shuffle=True, num_workers=4, drop_last=False,
               augmentation=False, remove_class=None):
+    """
+
+    :param args:
+    :param batch_size:
+    :param ckp_label_type:
+    :param shuffle:
+    :param num_workers:
+    :param drop_last:
+    :param augmentation:
+    :param remove_class:
+    :return:
+
+            transforms = tv.transforms.Compose([Fer2013RandomCrop(args), Fer2013ToTensor(), RandomFlip(), Fer2013Normalization(args)])
+        transforms_test = tv.transforms.Compose([Fer2013ToTensor(), Fer2013Normalization(args)])
+    """
     if augmentation:
-        pass
+        # Fer2013RandomCrop should work here as well
+        transforms = tv.transforms.Compose([Fer2013RandomCrop(args), RafdbToTensor(), RandomFlip(), Fer2013Normalization(args)])
+        transforms_test = tv.transforms.Compose([RafdbToTensor(), Fer2013Normalization(args)])
     else:
-        transforms = tv.transforms.Compose([RafdbToTensor()])
-        transforms_test = tv.transforms.Compose([RafdbToTensor()])
+        transforms = tv.transforms.Compose([RafdbToTensor(), Fer2013Normalization(args)])
+        transforms_test = tv.transforms.Compose([RafdbToTensor(), Fer2013Normalization(args)])
 
     train_ds = RafDB(train=True, args=args, transform=transforms, ckp_label_type=ckp_label_type,
                      remove_class=remove_class)
@@ -620,8 +640,16 @@ class Fer2013Normalization(object):
 
         image = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(image)
 
-        return {'image': image,
-                'label': label}
+        if 'mask' in sample.keys():
+            mask = sample['mask']
+            image_gray = sample['image_gray']
+            return {'image': image,
+                    'image_gray': image_gray,
+                    'label': label,
+                    'mask': mask}
+        else:
+            return {'image': image,
+                    'label': label}
 
 
 class Fer2013RandomCrop(object):

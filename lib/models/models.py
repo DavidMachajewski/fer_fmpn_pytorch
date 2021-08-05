@@ -713,7 +713,7 @@ class SCNN0(nn.Module):
 
         self.arch_config = self.configuration(type=self.args.scnn_config)
 
-        self.features = self.build_layers(self.arch_config, batch_norm=False)
+        self.features = self.build_layers(self.arch_config, batch_norm=True)
         self.avgpool = nn.AdaptiveAvgPool2d((self.avgplsize, self.avgplsize))
         self.classifier = nn.Sequential(
             nn.Linear(int(self.arch_config[-2]) * self.avgplsize**2, self.llfeat),
@@ -745,9 +745,12 @@ class SCNN0(nn.Module):
         return nn.Sequential(*layers)
 
     def configuration(self, type: str = 'A'):
-        # configuration of output filter_sizes or pooling ops.
+        # configuration of architecture
         arch_config = {
-            'A': ['64', 'M']
+            'A': [64, 'M'],
+            'B': [64, 64, 'M'],
+            'C': [64, 64, 'M', 128, 128, 'M'],
+            'D': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M']
         }
         return arch_config[type]
 

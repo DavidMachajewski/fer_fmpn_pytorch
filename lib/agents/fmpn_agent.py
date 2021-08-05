@@ -58,6 +58,8 @@ class FmpnAgent(Agent):
                                                                      shuffle=True,
                                                                      num_workers=self.args.num_workers,
                                                                      drop_last=True,
+                                                                     augmentation=self.args.augmentation,
+                                                                     remove_class=self.args.remove_class,
                                                                      ckp_label_type=True)
         elif self.args.dataset == "rafdb":
             self.train_dl, self.test_dl, self.valid_dl = get_rafdb(args=self.args,
@@ -66,6 +68,7 @@ class FmpnAgent(Agent):
                                                                    shuffle=True,
                                                                    num_workers=self.args.num_workers,
                                                                    drop_last=True,
+                                                                   augmentation=self.args.augmentation,
                                                                    remove_class=self.args.remove_class)  # remove neutral class
 
         self.loss_fmg_fn = nn.MSELoss()
@@ -569,10 +572,14 @@ class FmpnAgent(Agent):
             # print("val_acc: ", epoch_val_acc)
             # print("val_loss: {0} \t val_accuracy: {1}".format(epoch_total_val_loss, epoch_val_acc))
 
+            #
+            # NOTE: FMPN does not support neutral class! Therefore no case for ==7
+            #
             if self.args.dataset == "ckp":
                 classnames = None
             elif self.args.dataset == "fer":  # 6 classes without neutral image
-                classnames = ["anger", "disgust", "fear", "happy", "sadness", "surprise"]
+                if self.args.n_classes == 6:
+                    classnames = ["anger", "disgust", "fear", "happy", "sadness", "surprise"]
             elif self.args.dataset == "rafdb":
                 classnames = ['surprise', 'fear', 'disgust', 'happiness', 'sadness', 'anger']
 

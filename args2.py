@@ -90,7 +90,7 @@ class Setup(object):
         parser.add_argument('--dn_growth', type=int, default=32, help="growth rate of densenet")
         parser.add_argument('--dn_features', type=int, default=64, help="initial features")
         parser.add_argument('--dn_bnsize', type=int, default=4, help='')
-        parser.add_argument('--norm_orig_img', type=int, default=0, help='Feeding images to pretrained Incnet req. norm.')
+        parser.add_argument('--norm_orig_img', type=int, default=1, help='Feeding images to pretrained Incnet req. norm.')
 
         # ###############################################
         # checkpoints

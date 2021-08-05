@@ -4,17 +4,23 @@ from torchsummary import summary
 from lib.agents.scnn_agent import SCNNAgent
 from lib.agents.runner import Runner
 
+
+def train_rafdb_using_scnn():
+    pass
+
 if __name__ == "__main__":
     args = Setup().parse()
     args.mode = "train"
     args.model_to_train = "scnn"
     args.scnn_nr = 0
+    args.scnn_config = 'A'
     args.epochs = 200
     args.gpu_id = 0
     args.dataset = "rafdb"
-    args.batch_size = 16
-    args.lr_gen = 0.001
-    args.load_size = 100
+    args.augmentation = 1
+    args.batch_size = 64
+    args.lr_gen = 0.0001
+    args.load_size = 120
     args.final_size = 100  # rafdb Net input size
     args.n_classes = 7  # if you use n_classes 6 then delete class nr 7!!!!
     # args.remove_class = 7

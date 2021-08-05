@@ -51,6 +51,7 @@ class InceptionAgent(Agent):
                                                                    shuffle=True,
                                                                    num_workers=self.args.num_workers,
                                                                    drop_last=True,
+                                                                   augmentation=self.args.augmentation,
                                                                    remove_class=self.args.remove_class)
             print("Loaded rafdb dataset")
 
@@ -266,8 +267,7 @@ class InceptionAgent(Agent):
 
             # calculate precision recall fscore
             clf_report = prec_recall_fscore(y_true=all_labels.cpu(), y_pred=all_predictions.cpu())
-            roc_score = roc_auc_score(y_true=all_labels.cpu(), y_pred=all_predictions.cpu(),
-                                      n_classes=self.args.n_classes)
+            roc_score = roc_auc_score(y_true=all_labels.cpu(), y_pred=all_predictions.cpu(), n_classes=self.args.n_classes)
 
             out_dict = {
                 "precision": clf_report[0].round(2),
@@ -277,13 +277,6 @@ class InceptionAgent(Agent):
                 "roc_auc_ovr": roc_score.tolist(),
                 "test_acc": acc
             }
-            # out_df = pd.DataFrame(out_dict, index=self.args.n_classes)
-            # avg_tot = (
-            #     out_df.apply(lambda x: round(x.mean(), 2) if x.name != "support" else round(x.sum(), 2)).to_frame().T)
-            # avg_tot.index = ["avg/total"]
-            # out_df = out_df.append(avg_tot)
-            # save to file
-            # out_df.to_csv(self.test_plots + "clf_report.csv", index=False)
 
             with open(self.test_plots + "clf_report.txt", "w") as f:
                 print(out_dict, file=f)
