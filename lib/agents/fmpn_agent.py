@@ -52,6 +52,7 @@ class FmpnAgent(Agent):
                                                                  num_workers=self.args.num_workers,
                                                                  drop_last=True,
                                                                  valid=True)
+            print("Loaded ckp dataset")
         elif self.args.dataset == "fer":
             self.train_dl, self.test_dl, self.valid_dl = get_fer2013(args=self.args,
                                                                      batch_size=self.args.batch_size,
@@ -61,6 +62,7 @@ class FmpnAgent(Agent):
                                                                      augmentation=self.args.augmentation,
                                                                      remove_class=self.args.remove_class,
                                                                      ckp_label_type=True)
+            print("Loaded fer dataset")
         elif self.args.dataset == "rafdb":
             self.train_dl, self.test_dl, self.valid_dl = get_rafdb(args=self.args,
                                                                    ckp_label_type=self.args.ckp_label_type,
@@ -70,7 +72,7 @@ class FmpnAgent(Agent):
                                                                    drop_last=True,
                                                                    augmentation=self.args.augmentation,
                                                                    remove_class=self.args.remove_class)  # remove neutral class
-
+            print("Loaded rafdb dataset")
         self.loss_fmg_fn = nn.MSELoss()
         self.loss_cn_fn = nn.CrossEntropyLoss()
 

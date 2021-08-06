@@ -38,9 +38,6 @@ class DatasetBase(Dataset):
 
     def __load_image__(self, path):
         img = cv.imread(path)
-
-        # print(img)
-
         if self.train:
             # load bigger size image to apply random cropping while training ckp on fmpn/fmg (small dataset)
             img = cv.resize(img, (self.args.load_size, self.args.load_size))
@@ -49,9 +46,7 @@ class DatasetBase(Dataset):
         if img.shape[2] == 1:
             # to get 3 channel image
             img = cv.cvtColor(img, cv.CV_GRAY2RGB)
-            #
             # dividing by 255.
-            #
         img = cv.normalize(img, None, alpha=0, beta=1, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
         # img = 1./255. * img
         return img
@@ -76,13 +71,7 @@ class DatasetBase(Dataset):
         # grayscale
         img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
-        #
-        # :TODO: normalization not needed here?
-        #   just multiply by 1./255.
-        #
-
         norm_img = cv.normalize(img, None, alpha=0, beta=1, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
-        # norm_img = 1./255. * img
 
         norm_img = np.expand_dims(norm_img, axis=2)
         return norm_img
@@ -163,19 +152,15 @@ class RafDB(DatasetBase):
 
         img_path = self.args.rafdb_imgs + file_name
 
-        img = self.__load_image__(img_path)
+        img = self.__load_image__(img_path)  # load image of size (320,320,3) = (load_size, load_size, n_channels)
 
-        # resize image to final_size if augmentation is false
-        if not self.args.augmentation:
-            img = cv.resize(img, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
-            img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-            img_gray = cv.resize(img_gray, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
-            img_gray = np.expand_dims(img_gray, axis=-1)  # (W;H;1)
-        else:
-            img = cv.resize(img, dsize=(self.args.load_size, self.args.load_size), interpolation=cv.INTER_CUBIC)
-            img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-            img_gray = cv.resize(img_gray, dsize=(self.args.load_size, self.args.load_size), interpolation=cv.INTER_CUBIC)
-            img_gray = np.expand_dims(img_gray, axis=-1)  # (W;H;1)
+        # resize image to final_size
+        # img = cv.resize(img, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
+
+        img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+        # no resizing needed here because img_gray is a new var of img, but grayscaled
+        # img_gray = cv.resize(img_gray, dsize=(self.args.load_size, self.args.load_size), interpolation=cv.INTER_CUBIC)
+        img_gray = np.expand_dims(img_gray, axis=-1)  # (W;H;1)
 
         # convert label to ckp label
         label = self.convert_label(label)
@@ -494,6 +479,7 @@ def get_ckp(args, batch_size=8, shuffle=True, num_workers=2, drop_last=False, va
 def get_fer2013(args, batch_size=8, ckp_label_type=False, shuffle=True, num_workers=4, drop_last=False,
                 augmentation=True, remove_class=None):
     if augmentation:
+        print("Using data augmentation...")
         transforms = tv.transforms.Compose([Fer2013RandomCrop(args), Fer2013ToTensor(), RandomFlip(), Fer2013Normalization(args)])
         transforms_test = tv.transforms.Compose([Fer2013ToTensor(), Fer2013Normalization(args)])
     else:
@@ -546,6 +532,7 @@ def get_rafdb(args, batch_size=8, ckp_label_type=False, shuffle=True, num_worker
         transforms_test = tv.transforms.Compose([Fer2013ToTensor(), Fer2013Normalization(args)])
     """
     if augmentation:
+        print("Using data augmentation to process RAF-DB")
         # Fer2013RandomCrop should work here as well
         transforms = tv.transforms.Compose([Fer2013RandomCrop(args), RafdbToTensor(), RandomFlip(), Fer2013Normalization(args)])
         transforms_test = tv.transforms.Compose([RafdbToTensor(), Fer2013Normalization(args)])
@@ -553,12 +540,9 @@ def get_rafdb(args, batch_size=8, ckp_label_type=False, shuffle=True, num_worker
         transforms = tv.transforms.Compose([RafdbToTensor(), Fer2013Normalization(args)])
         transforms_test = tv.transforms.Compose([RafdbToTensor(), Fer2013Normalization(args)])
 
-    train_ds = RafDB(train=True, args=args, transform=transforms, ckp_label_type=ckp_label_type,
-                     remove_class=remove_class)
-    test_ds = RafDB(train=False, args=args, transform=transforms_test, valid=False, ckp_label_type=ckp_label_type,
-                    remove_class=remove_class)
-    valid_ds = RafDB(train=False, args=args, transform=transforms_test, valid=True, ckp_label_type=ckp_label_type,
-                     remove_class=remove_class)
+    train_ds = RafDB(train=True, args=args, transform=transforms, ckp_label_type=ckp_label_type, remove_class=remove_class)
+    test_ds = RafDB(train=False, args=args, transform=transforms_test, valid=False, ckp_label_type=ckp_label_type, remove_class=remove_class)
+    valid_ds = RafDB(train=False, args=args, transform=transforms_test, valid=True, ckp_label_type=ckp_label_type, remove_class=remove_class)
 
     train_loader = DataLoader(dataset=train_ds,
                               batch_size=batch_size,
@@ -639,16 +623,14 @@ class Fer2013Normalization(object):
     def __call__(self, sample):
         image = sample['image']
         label = sample['label']
+        image_gray = sample['image_gray']
 
         image = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(image)
 
         if 'mask' in sample.keys():
-            mask = sample['mask']
-            image_gray = sample['image_gray']
             return {'image': image,
                     'image_gray': image_gray,
-                    'label': label,
-                    'mask': mask}
+                    'label': label}
         else:
             return {'image': image,
                     'label': label}
@@ -660,6 +642,7 @@ class Fer2013RandomCrop(object):
 
     def __call__(self, sample):
         image = sample['image']
+        image_gray = sample['image_gray']
         label = sample['label']
 
         h, w = image.shape[:2]
@@ -669,9 +652,8 @@ class Fer2013RandomCrop(object):
         left = np.random.randint(0, w - new_w)
 
         image = image[top: top + new_h, left: left + new_w]
-
-        image_gray = sample['image_gray']
         image_gray = image_gray[top: top + new_h, left: left + new_w]
+
         if "mask" in sample.keys():
             mask = sample['mask']
             return {'image': image,
