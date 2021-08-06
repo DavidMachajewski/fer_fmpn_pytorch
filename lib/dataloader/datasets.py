@@ -624,12 +624,14 @@ class Fer2013Normalization(object):
         image = sample['image']
         label = sample['label']
         image_gray = sample['image_gray']
+        mask = sample['mask']
 
         image = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(image)
 
         if 'mask' in sample.keys():
             return {'image': image,
                     'image_gray': image_gray,
+                    'mask': mask,
                     'label': label}
         else:
             return {'image': image,
