@@ -66,13 +66,15 @@ class Setup(object):
         parser.add_argument('--fer_images', type=str, default="./datasets/fer/fer2013.csv", help="path to fer dataset file")
         parser.add_argument('--fer', type=str, default="./datasets/fer/", help="path to fer dataset folder")
 
-        parser.add_argument('--affectnet_manual', type=str, default="./datasets/affectnet/training.csv")
+        # paths to affect net .csv files
+        parser.add_argument('--affectnet_manual', type=str, default="D:\Downloads\Manually_Annotated_file_lists/training.csv", help="Path to the manual annotated training set")
+        parser.add_argument('--affectnet_automatic_trainset', type=str, default="D:\Downloads\Automatically_annotated_file_list/automatically_annotated.csv", help="Path to the automatically annotated training set")
+        parser.add_argument('--affectnet_manual_valid', type=str, default="D:\Downloads\Manually_Annotated_file_lists/validation.csv", help="Path to the automatically annotated validation set")
+
         parser.add_argument('--affectnet', type=str, default="./datasets/affectnet/")
         parser.add_argument('--affectnet_images', type=str, default="D:/Downloads/Manually_Annotated_compressed/Manually_Annotated_compressed/")
-        #
-        # :TODO: change fer_csvsplits parameter if there will not be a tensplit
-        #
 
+        # :TODO: change fer_csvsplits parameter if there will not be a tensplit
         parser.add_argument('--ckp_label_type', type=int, default=0, help="load dataset with ckp label to load mask while training the fmpn")
 
         # fer

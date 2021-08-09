@@ -14,7 +14,8 @@ class FERUtils:
     # anger, disgust, fear, happy, sad, surprise, neutral
     # emotions = {0: 'Angry', 1: 'Disgust', 2: 'Fear', 3: 'Happy', 4: 'Sad', 5: 'Surprise', 6: 'Neutral'}
     """
-    def __init__(self, args, remove_label = None):
+
+    def __init__(self, args, remove_label=None):
         self.args = args
         self.dataset = None
         self.train = None
@@ -22,7 +23,7 @@ class FERUtils:
         self.val = None
         self.__load_csv__(args, remove_label)
 
-    def __load_csv__(self, args, remove_label = None):
+    def __load_csv__(self, args, remove_label=None):
         self.dataset = pd.read_csv(args.fer_images)
         if isinstance(remove_label, int):
             print("removing label nr: ", remove_label)
@@ -61,18 +62,44 @@ class AffectNetUtils():
     9: Uncertain
     10: No-Face
     """
+
     def __init__(self, args):
         self.args = args
-        self.dataset = self.__load_csv__(args)
-        self.train_dfs, self.test_dfs = [], []
+        self.dataset, self.dataset_aut, self.valid = self.__load_csv__()
+        self.train_dfs, self.test_dfs, self.valid_dfs = [], [], []
+        self.subfolder_manual = "Manually_Annotated_compressed"
+        self.subfolder_automatic = "Automatically_Annotated_compressed"
 
-    def __load_csv__(self, args):
-        dataset = pd.read_csv(args.affectnet_manual)
-        return dataset
+    def __load_csv__(self):
+        # load .csv files for training and validation (manual ann. val set) - split val into test/val
+        dataset_manual = pd.read_csv(self.args.affectnet_manual)  # manually annotated csv file (training)
+        dataset_automatically = pd.read_csv(self.args.affectnet_automatic_trainset)  # automatically annotated list
+        validation_manual = pd.read_csv(
+            self.args.affectnet_manual_valid)  # manually annotated validation csv file -> split it into test/validation
+        return dataset_manual, dataset_automatically, validation_manual
 
-    def __rd_sample__(self,
-                      emotions=[1, 2, 3, 4, 5, 6, 7],
-                      n_samples=None):
+    def __create_full_csv__(self):
+        # merge dataset_manual and dataset_automatically and next split validation to test, valid
+        # remove classes 8, 9, 10 from manually annotated dataset
+        self.dataset = self.dataset[self.dataset.iloc[:, 6] != 8]
+        self.dataset = self.dataset[self.dataset.iloc[:, 6] != 9]
+        self.dataset = self.dataset[self.dataset.iloc[:, 6] != 10]  # 8 9 10
+        # remove classes 8, 9, 10 from automatically annotated dataset
+        self.dataset_aut = self.dataset_aut[self.dataset_aut.iloc[:, 6] != 8]
+        self.dataset_aut = self.dataset_aut[self.dataset_aut.iloc[:, 6] != 9]
+        self.dataset_aut = self.dataset_aut[self.dataset_aut.iloc[:, 6] != 10]
+        # remove classes 8, 9, 10 from manually validation set
+        self.valid = self.valid[self.valid.iloc[:, 6] != 8]
+        self.valid = self.valid[self.valid.iloc[:, 6] != 9]
+        self.valid = self.valid[self.valid.iloc[:, 6] != 10]
+        # merge manual annotated dataset and automatically annotated dataset
+        self.dataset = pd.concat([self.dataset, self.dataset_aut], axis=0)
+        # split validation set into 50/50 test/validation sets
+        #
+        # :TODO: add code here
+        #
+
+    def __rd_sample__(self, emotions=[1, 2, 3, 4, 5, 6, 7], n_samples=None):
         """Randomly sample 3500 images per class out of the
         manual annotated AffectNet dataset (We use the seven basic emotions)
         :return:
@@ -96,7 +123,7 @@ class AffectNetUtils():
             tmp = self.dataset.loc[self.dataset['expression'] == emotions[idx]]
             tmp = tmp[['subDirectory_filePath', 'expression']]
             # get n_samples randomly
-            tmp = tmp.sample(n = n_samples[str(emotions[idx])])
+            tmp = tmp.sample(n=n_samples[str(emotions[idx])])
             tmp_train = tmp['subDirectory_filePath'].to_numpy()
             tmp_label = tmp['expression'].to_numpy()
 
@@ -148,13 +175,16 @@ class AffectNetUtils():
 
 def run_affectnet_csv():
     args = Setup().parse()
-    args.affectnet_manual = "../../datasets/affectnet/training.csv"
+    # args.affectnet_manual = "../../datasets/affectnet/training.csv"
+    # args.affectnet_automatic_trainset = ""
+    # args.affectnet_manual_valid = ""
     args.affectnet = "../../datasets/affectnet/"
     afnet = AffectNetUtils(args)
+    afnet.__create_full_csv__()
 
 
 class RafDBUtils:
-    def __init__(self, args, remove_label = None):
+    def __init__(self, args, remove_label=None):
         self.args = args
         self.__load_labelfile__(path_to_file=self.args.rafdb_labelfile)
         self.save_to_csv()
@@ -176,14 +206,14 @@ class RafDBUtils:
             self.file_names.append(name)
             self.labels.append(label)
 
-
     def save_to_csv(self):
         train_filename = "train_ids_0.csv"
         test_filename = "test_ids_0.csv"
         val_filename = "valid_ids_0.csv"
 
         # split the test set to test/val 50/50
-        X_test, X_val, y_test, y_val = train_test_split(self.test_files, self.test_labels, test_size=0.5, random_state=42)
+        X_test, X_val, y_test, y_val = train_test_split(self.test_files, self.test_labels, test_size=0.5,
+                                                        random_state=42)
 
         # create dataframes
         train_df = pd.DataFrame(data=list(zip(self.train_files, self.train_labels)), columns=['file_name', 'label'])
@@ -200,12 +230,13 @@ class RafDBUtils:
 
 
 if __name__ == '__main__':
-    args = Setup().parse()
-    args.fer_images = "../../datasets/fer/fer2013.csv"
-    args.fer = "../../datasets/fer/"
+    # args = Setup().parse()
+    # args.fer_images = "../../datasets/fer/fer2013.csv"
+    # args.fer = "../../datasets/fer/"
     # create fer dataset but remove label neutral
-    fer = FERUtils(args)
-    fer.save_to_csv()
+    # fer = FERUtils(args)
+    # fer.save_to_csv()
+    run_affectnet_csv()
 
     # data = fer.dataset.values
     # print(fer.dataset['Usage'].value_counts())
@@ -221,9 +252,6 @@ if __name__ == '__main__':
     # rafdb = RafDB(args=args, train=True, ckp_label_type=True)
 
     # print(rafdb[0])
-
-
-
 
     # Training
     # PrivateTest

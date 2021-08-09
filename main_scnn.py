@@ -13,7 +13,7 @@ if __name__ == "__main__":
     args.mode = "train"
     args.model_to_train = "scnn"
     args.scnn_nr = 0
-    args.scnn_config = 'A'
+    args.scnn_config = 'B'
     args.epochs = 200
     args.gpu_id = 0
     args.dataset = "rafdb"
@@ -22,8 +22,9 @@ if __name__ == "__main__":
     args.lr_gen = 0.0001
     args.load_size = 120
     args.final_size = 100  # rafdb Net input size
-    args.n_classes = 7  # if you use n_classes 6 then delete class nr 7!!!!
-    # args.remove_class = 7
+    args.n_classes = 6  # if you use n_classes 6 then delete class nr 7!!!! otherwise 7
+    args.remove_class = 7
+    args.scnn_llfeatures = 512  # 1024  # 2048 # 4096  # reduce it later if overfitting occures
     args.trainsplit = "train_ids_0.csv"
     args.testsplit = "test_ids_0.csv"
     args.validsplit = "valid_ids_0.csv"
