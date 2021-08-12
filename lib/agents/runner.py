@@ -60,7 +60,7 @@ class Runner:
                                                n_classes=self.args.n_classes)
             eval.make_loss_plot(path_to_dict=model.train_logs_path, save_to=model.train_plots)
             eval.make_acc_plot(path_to_dict=model.train_logs_path, save_to=model.train_plots)
-            if self.args.model_to_train == "fmpn":
+            if self.args.model_to_train == "fmpn" or self.args.model_to_train == "fmpn_mod":
                 eval.make_lr_plot_fmpn(path_to_dict=model.train_logs_path, save_to=model.train_plots)
             else:
                 # eval.make_loss_plot(path_to_dict=model.train_logs_path, save_to=model.train_plots)
