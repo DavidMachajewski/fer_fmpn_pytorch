@@ -2,6 +2,7 @@ from lib.agents.inc_agent import InceptionAgent
 from lib.agents.densenet_agent import DenseNetAgent
 from lib.agents.resnet_agent import ResNetAgent
 from lib.agents.fmpn_agent import FmpnAgent
+from lib.agents.fmpn_mod_agent import FmpnAgentMod
 from lib.agents.scnn_agent import SCNNAgent
 import lib.eval.eval_utils as eval
 
@@ -30,6 +31,8 @@ class Runner:
         elif self.args.model_to_train == "fmpn":
             print("Initializing Facial Motion Prior Network")
             model = FmpnAgent(self.args)
+        elif self.args.model_to_train == "fmpn_mod":
+            model = FmpnAgentMod(self.args)
         else:
             raise NotImplementedError
         return model

@@ -1,5 +1,6 @@
 import numpy as np
 import csv
+import os
 import pandas as pd
 from args2 import Setup
 from sklearn.model_selection import KFold
@@ -67,8 +68,8 @@ class AffectNetUtils():
         self.args = args
         self.dataset, self.dataset_aut, self.valid = self.__load_csv__()
         self.train_dfs, self.test_dfs, self.valid_dfs = [], [], []
-        self.subfolder_manual = "Manually_Annotated_compressed"
-        self.subfolder_automatic = "Automatically_Annotated_compressed"
+        self.subfolder_manual = "Manually_Annotated_compressed/"
+        self.subfolder_automatic = "Automatically_Annotated_compressed/"
 
     def __load_csv__(self):
         # load .csv files for training and validation (manual ann. val set) - split val into test/val
@@ -81,6 +82,7 @@ class AffectNetUtils():
     def __create_full_csv__(self):
         # merge dataset_manual and dataset_automatically and next split validation to test, valid
         # remove classes 8, 9, 10 from manually annotated dataset
+        tmp_filenames, tmp_emotions = [], []
         self.dataset = self.dataset[self.dataset.iloc[:, 6] != 8]
         self.dataset = self.dataset[self.dataset.iloc[:, 6] != 9]
         self.dataset = self.dataset[self.dataset.iloc[:, 6] != 10]  # 8 9 10
@@ -92,12 +94,35 @@ class AffectNetUtils():
         self.valid = self.valid[self.valid.iloc[:, 6] != 8]
         self.valid = self.valid[self.valid.iloc[:, 6] != 9]
         self.valid = self.valid[self.valid.iloc[:, 6] != 10]
+        # actualize the paths to the parent subfolder to remove the ambiguity of subdirectory_filePath column
+        for idx in range(0, len(self.dataset)):
+            tmp_filenames.append(os.path.join(self.subfolder_manual, self.dataset.iat[idx, 0]))
+            tmp_emotions.append(self.dataset.iat[idx, 6])
+        self.dataset = pd.DataFrame(list(zip(tmp_filenames, tmp_emotions)), columns=['file_name', 'label'])
+
+        tmp_filenames, tmp_emotions = [], []
+        for idx in range(0, len(self.dataset_aut)):
+            tmp_filenames.append(os.path.join(self.subfolder_automatic, self.dataset_aut.iat[idx, 0]))
+            tmp_emotions.append(self.dataset_aut.iat[idx, 6])
+        self.dataset_aut = pd.DataFrame(list(zip(tmp_filenames, tmp_emotions)), columns=['file_name', 'label'])
+
         # merge manual annotated dataset and automatically annotated dataset
         self.dataset = pd.concat([self.dataset, self.dataset_aut], axis=0)
+        del self.dataset_aut
+
+        tmp_filenames, tmp_emotions = [], []
+        for idx in range(0, len(self.valid)):
+            tmp_filenames.append(os.path.join(self.subfolder_manual, self.valid.iat[idx, 0]))
+            tmp_emotions.append(self.valid.iat[idx, 6])
+        self.valid = pd.DataFrame(list(zip(tmp_filenames, tmp_emotions)), columns=['file_name', 'label'])
         # split validation set into 50/50 test/validation sets
-        #
-        # :TODO: add code here
-        #
+        msk = np.random.rand(len(self.valid)) <= 0.50
+        self.test = self.valid[msk]
+        self.valid = self.valid[~msk]
+        # save to csv files
+        self.dataset.to_csv(self.args.affectnet + "train_ids_0.csv", index=False)
+        self.test.to_csv(self.args.affectnet + "test_ids_0.csv", index=False)
+        self.valid.to_csv(self.args.affectnet + "valid_ids_0.csv", index=False)
 
     def __rd_sample__(self, emotions=[1, 2, 3, 4, 5, 6, 7], n_samples=None):
         """Randomly sample 3500 images per class out of the
@@ -178,7 +203,7 @@ def run_affectnet_csv():
     # args.affectnet_manual = "../../datasets/affectnet/training.csv"
     # args.affectnet_automatic_trainset = ""
     # args.affectnet_manual_valid = ""
-    args.affectnet = "../../datasets/affectnet/"
+    args.affectnet = "../../datasets/affectnet/full/"
     afnet = AffectNetUtils(args)
     afnet.__create_full_csv__()
 

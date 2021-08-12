@@ -604,16 +604,16 @@ class RunFMPN(RunSetup):
         pass
 
 
-def vgg19(pretrained=False):
+def vgg16(pretrained=False):
     """Source of vgg pytorch:
     https://github.com/pytorch/vision/blob/master/torchvision/models/vgg.py"""
     n_channels = 1
     n_classes = 7
     if pretrained:
         print("Loading pretrained model...")
-        vgg = tv.models.vgg19(transform_input=True, init_weights=False)
+        vgg = tv.models.vgg16(transform_input=True, init_weights=False)
         state_dict = to.hub.load_state_dict_from_url(
-            'https://download.pytorch.org/models/vgg19-dcbb9e9d.pth')
+            'https://download.pytorch.org/models/vgg16-397923af.pth')
         state = {k: v for k, v in state_dict.items() if k in vgg.state_dict()}
         vgg.load_state_dict(state)
         print("Loaded ")
@@ -621,7 +621,7 @@ def vgg19(pretrained=False):
         vgg.classifier[6] = to.nn.Linear(in_features=4096, out_features=n_classes, bias=True)
     else:
         print("Loading non pretrained model...")
-        vgg = tv.models.vgg19(transform_input=True, init_weights=False)
+        vgg = tv.models.vgg16(transform_input=True, init_weights=False)
         vgg.features[0] = to.nn.Conv2d(n_channels, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         vgg.classifier[6] = to.nn.Linear(in_features=4096, out_features=n_classes, bias=True)
     return vgg
@@ -644,6 +644,7 @@ def resnet18(pretrained=False, n_classes=7):
         res = tv.models.resnet18(num_classes=n_classes)
         res.fc = nn.Linear(in_features=res.fc.in_features, out_features=n_classes)
     return res
+
 
 
 def inceptionv3(pretrained=False, n_classes=7):
@@ -750,7 +751,8 @@ class SCNN0(nn.Module):
             'A': [64, 'M'],
             'B': [64, 64, 'M'],
             'C': [64, 64, 'M', 128, 128, 'M'],
-            'D': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M']
+            'D': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M'],
+            'E': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M']
         }
         return arch_config[type]
 
