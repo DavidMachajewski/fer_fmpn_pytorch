@@ -704,7 +704,7 @@ class RandomFlip(object):
         image = sample['image']
         label = sample['label']
         image_gray = sample['image_gray']
-        # path = sample["img_path"]
+        path = sample["img_path"]
 
         image = tv.transforms.RandomHorizontalFlip(p=0.5)(image)
         image_gray = tv.transforms.RandomHorizontalFlip(p=0.5)(image_gray)
@@ -714,7 +714,8 @@ class RandomFlip(object):
             return {'image': image,
                     'image_gray': image_gray,
                     'label': label,
-                    'mask': mask}
+                    'mask': mask,
+                    'img_path': path}
         else:
             return {'image': image,
                     'image_gray': image_gray,
