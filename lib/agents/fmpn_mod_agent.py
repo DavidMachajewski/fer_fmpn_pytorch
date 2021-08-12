@@ -399,10 +399,10 @@ class FmpnAgentMod(Agent):
                                                  + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
                                                 self.tmp_epoch) + "_batch_" + str(i) + ".png")
 
-                            save_tensor_img(img=heat_face[idx].cpu().detach(),
-                                            path=self.train_plots + "multiplied_img_"
-                                                 + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
-                                                self.tmp_epoch) + "_batch_" + str(i) + ".png")
+                            #save_tensor_img(img=heat_face[idx].cpu().detach(),
+                            #                path=self.train_plots + "multiplied_img_"
+                            #                     + str(labels[idx].cpu().detach().numpy()) + "_epoch_" + str(
+                            #                    self.tmp_epoch) + "_batch_" + str(i) + ".png")
 
             classifications = self.cn(heat_face)
 
