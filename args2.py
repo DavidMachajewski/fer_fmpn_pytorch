@@ -71,8 +71,10 @@ class Setup(object):
         parser.add_argument('--affectnet_automatic_trainset', type=str, default="D:\Downloads\Automatically_annotated_file_list/automatically_annotated.csv", help="Path to the automatically annotated training set")
         parser.add_argument('--affectnet_manual_valid', type=str, default="D:\Downloads\Manually_Annotated_file_lists/validation.csv", help="Path to the automatically annotated validation set")
 
-        parser.add_argument('--affectnet', type=str, default="./datasets/affectnet/")
+        parser.add_argument('--affectnet', type=str, default="./datasets/affectnet/full/")
         parser.add_argument('--affectnet_images', type=str, default="D:/Downloads/Manually_Annotated_compressed/Manually_Annotated_compressed/")
+        parser.add_argument('--affectnet_img_parentfolder_man', type=str, default="", help="path to the manual compressed folder of affect net")
+        parser.add_argument('--affectnet_img_parentfolder_aut', type=str, default="", help="path to the automatic compressed folder of affect net")
 
         # :TODO: change fer_csvsplits parameter if there will not be a tensplit
         parser.add_argument('--ckp_label_type', type=int, default=0, help="load dataset with ckp label to load mask while training the fmpn")

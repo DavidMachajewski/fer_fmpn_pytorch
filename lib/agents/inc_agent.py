@@ -5,7 +5,7 @@ import torch
 import pandas as pd
 from tqdm import tqdm, trange
 from lib.models.models import get_ckp
-from lib.dataloader.datasets import get_fer2013, get_rafdb
+from lib.dataloader.datasets import get_fer2013, get_rafdb, get_affectnet
 from lib.agents.agent import Agent
 from lib.models.models import inceptionv3
 from lib.eval.eval_utils import make_cnfmat_plot, prec_recall_fscore, roc_auc_score
@@ -54,6 +54,17 @@ class InceptionAgent(Agent):
                                                                    augmentation=self.args.augmentation,
                                                                    remove_class=self.args.remove_class)
             print("Loaded rafdb dataset")
+        elif self.args.dataset == "affectnet":
+            self.train_dl, self.test_dl, self.valid_dl = get_affectnet(args=self.args,
+                                                                       ckp_label_type=self.args.ckp_label_type,
+                                                                       batch_size=self.args.batch_size,
+                                                                       shuffle=True,
+                                                                       num_workers=self.args.num_workers,
+                                                                       drop_last=True,
+                                                                       augmentation=self.args.augmentation,
+                                                                       remove_class=self.args.remove_class,  # remove class 0
+                                                                       subset=False)
+            print("Loaded affectnet dataset")
 
         self.opt = self.__init_optimizer__()
         self.loss_fn = torch.nn.CrossEntropyLoss()
@@ -166,7 +177,7 @@ class InceptionAgent(Agent):
             self.opt.zero_grad()
 
             cls = self.model(images).logits
-            cls_soft = torch.softmax( cls, dim=-1 )
+            cls_soft = torch.softmax(cls, dim=-1)
 
             loss = self.loss_fn(cls, labels)
             loss.backward()
@@ -251,6 +262,11 @@ class InceptionAgent(Agent):
                     classnames = ['surprise', 'fear', 'disgust', 'happiness', 'sadness', 'anger']
                 elif self.args.n_classes == 7:
                     classnames = ['surprise', 'fear', 'disgust', 'happiness', 'sadness', 'anger', 'neutral']
+            elif self.args.dataset == "affectnet":
+                if self.args.n_classes == 7:
+                    classnames = ['happiness', 'sadness', 'surprise', 'fear', 'disgust', 'anger', 'contempt']
+                elif self.args.n_classes == 8:
+                    pass
 
             # create heatplot from confusion matrix
             cnfmat = make_cnfmat_plot(labels=all_labels,
@@ -267,7 +283,8 @@ class InceptionAgent(Agent):
 
             # calculate precision recall fscore
             clf_report = prec_recall_fscore(y_true=all_labels.cpu(), y_pred=all_predictions.cpu())
-            roc_score = roc_auc_score(y_true=all_labels.cpu(), y_pred=all_predictions.cpu(), n_classes=self.args.n_classes)
+            roc_score = roc_auc_score(y_true=all_labels.cpu(), y_pred=all_predictions.cpu(),
+                                      n_classes=self.args.n_classes)
 
             out_dict = {
                 "precision": clf_report[0].round(2),

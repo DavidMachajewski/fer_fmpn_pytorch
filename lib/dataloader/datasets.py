@@ -364,10 +364,12 @@ class FER2013(DatasetBase):
         img = cv.cvtColor(img_gray, cv.COLOR_GRAY2RGB)
 
         if self.train:
-            img_gray = cv.resize(img_gray, dsize=(self.args.load_size, self.args.load_size), interpolation=cv.INTER_CUBIC)
+            img_gray = cv.resize(img_gray, dsize=(self.args.load_size, self.args.load_size),
+                                 interpolation=cv.INTER_CUBIC)
             img = cv.resize(img, dsize=(self.args.load_size, self.args.load_size), interpolation=cv.INTER_CUBIC)
         else:
-            img_gray = cv.resize(img_gray, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
+            img_gray = cv.resize(img_gray, dsize=(self.args.final_size, self.args.final_size),
+                                 interpolation=cv.INTER_CUBIC)
             img = cv.resize(img, dsize=(self.args.final_size, self.args.final_size), interpolation=cv.INTER_CUBIC)
 
         img_gray = np.expand_dims(img_gray, axis=-1)  # (W;H;1)
@@ -389,6 +391,114 @@ class FER2013(DatasetBase):
             sample = {'image': img,
                       'image_gray': img_gray,
                       'label': self.convert_label(label[0])}
+
+        if self.transform:
+            sample = self.transform(sample)
+        return sample
+
+
+class AffectNet(DatasetBase):
+    """
+    0: neutral
+    1: happiness    0
+    2: sadness      1
+    3: surprise     2
+    4: fear         3
+    5: disgust      4
+    6: anger        5
+    7: contempt     6
+
+    8: None
+    9: Uncertain
+    10: No-Face
+    """
+
+    def __init__(self, args, train: bool, transform=None, valid=False, ckp_label_type=False, remove_class=None):
+        """To remove the neutral emotion, use remove_class=0"""
+        super(AffectNet, self).__init__(args, train, valid)
+        self.train = train
+        self.transform = transform
+        self.remove_class = remove_class
+        self.ckp_label_type = ckp_label_type
+        self.__load_file__()
+        self.__remove_emotion__()
+        #
+        # paths to image folders into args
+        #
+
+    def __load_file__(self):
+        path = self.args.affectnet + self.splitname
+        print("Loading {0} from {1}".format(self.splitname, path))
+        self.data = pd.read_csv(path)
+
+    def __remove_emotion__(self):
+        """remove a given emotion from the dataset"""
+        # print("remove class nr. {}".format(self.remove_class))
+        if isinstance(self.remove_class, int):
+            print("Removing class nr. {}".format(self.remove_class))
+            self.data = self.data[self.data["label"] != self.remove_class]
+
+    def convert_label_to_masklabel(self, label):
+        """convert modified label to ckp mask labels for loading the specific mask jpg."""
+        # only use this if you want to load masks for training fmpn network
+        """
+        ckp labels for loading masks
+        0: anger
+        1: contempt
+        2: disgust
+        3: fear
+        4: happiness
+        5: sadness
+        6: surprise
+        """
+        ckplabels = [4, 5, 6, 3, 2, 0, 1]
+        return ckplabels[label]
+
+    def convert_label(self, label):
+        # because neutral is 0 and other labels start at 1
+        # so if we remove label neutral there will be a bug
+        # in n_classes and label idxs not matching
+        # USE THIS FOR TRAINING THE FMPN
+        return label - 1
+
+    def __len__(self):
+        return len(self.data)  # check if this works for dataframes!
+
+    def __getitem__(self, idx):
+        label = self.data.iloc[[idx]]["label"].values
+        # the file_name contains the subpath like /Manually_Anotated_compressed/600/cfa0... .jpg
+        file_name = self.data.iloc[[idx]]["file_name"].values[0]
+
+        if self.train:
+            if file_name[0:7] == "Manually":
+                img_path = self.args.affectnet_img_parentfolder_man + file_name
+            else:  # Automatically
+                img_path = self.args.affectnet_img_parentfolder_aut + file_name
+        elif not self.train and not self.valid:
+            img_path = self.args.affectnet_img_parentfolder_man + file_name
+        elif self.valid and not self.train:
+            img_path = self.args.affectnet_img_parentfolder_man + file_name
+
+        # img_path = self.args.rafdb_imgs + file_name
+
+        img = self.__load_image__(img_path)  # load image of size (320,320,3) = (load_size, load_size, n_channels)
+        img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+        img_gray = np.expand_dims(img_gray, axis=-1)  # (W;H;1)
+
+        # convert label to ckp label
+        if self.ckp_label_type:  # ckp_label_type implies that neutral class is removed
+            label = self.convert_label(label)
+            mask_label = self.convert_label_to_masklabel(label[0])
+            mask = self.__load_mask__(mask_label)
+            sample = {'image': img,
+                      'image_gray': img_gray,
+                      'label': label[0],
+                      'mask': mask,
+                      'img_path': img_path}
+        else:
+            sample = {'image': img,
+                      'image_gray': img_gray,
+                      'label': label[0]}
 
         if self.transform:
             sample = self.transform(sample)
@@ -480,7 +590,8 @@ def get_fer2013(args, batch_size=8, ckp_label_type=False, shuffle=True, num_work
                 augmentation=True, remove_class=None):
     if augmentation:
         print("Using data augmentation...")
-        transforms = tv.transforms.Compose([Fer2013RandomCrop(args), Fer2013ToTensor(), RandomFlip(), Fer2013Normalization(args)])
+        transforms = tv.transforms.Compose(
+            [Fer2013RandomCrop(args), Fer2013ToTensor(), RandomFlip(), Fer2013Normalization(args)])
         transforms_test = tv.transforms.Compose([Fer2013ToTensor(), Fer2013Normalization(args)])
     else:
         transforms = tv.transforms.Compose([Fer2013ToTensor(), Fer2013Normalization(args)])
@@ -534,15 +645,19 @@ def get_rafdb(args, batch_size=8, ckp_label_type=False, shuffle=True, num_worker
     if augmentation:
         print("Using data augmentation to process RAF-DB")
         # Fer2013RandomCrop should work here as well
-        transforms = tv.transforms.Compose([Fer2013RandomCrop(args), RafdbToTensor(), RandomFlip(), Fer2013Normalization(args)])
+        transforms = tv.transforms.Compose(
+            [Fer2013RandomCrop(args), RafdbToTensor(), RandomFlip(), Fer2013Normalization(args)])
         transforms_test = tv.transforms.Compose([RafdbToTensor(), Fer2013Normalization(args)])
     else:
         transforms = tv.transforms.Compose([RafdbToTensor(), Fer2013Normalization(args)])
         transforms_test = tv.transforms.Compose([RafdbToTensor(), Fer2013Normalization(args)])
 
-    train_ds = RafDB(train=True, args=args, transform=transforms, ckp_label_type=ckp_label_type, remove_class=remove_class)
-    test_ds = RafDB(train=False, args=args, transform=transforms_test, valid=False, ckp_label_type=ckp_label_type, remove_class=remove_class)
-    valid_ds = RafDB(train=False, args=args, transform=transforms_test, valid=True, ckp_label_type=ckp_label_type, remove_class=remove_class)
+    train_ds = RafDB(train=True, args=args, transform=transforms, ckp_label_type=ckp_label_type,
+                     remove_class=remove_class)
+    test_ds = RafDB(train=False, args=args, transform=transforms_test, valid=False, ckp_label_type=ckp_label_type,
+                    remove_class=remove_class)
+    valid_ds = RafDB(train=False, args=args, transform=transforms_test, valid=True, ckp_label_type=ckp_label_type,
+                     remove_class=remove_class)
 
     train_loader = DataLoader(dataset=train_ds,
                               batch_size=batch_size,
@@ -565,26 +680,42 @@ def get_rafdb(args, batch_size=8, ckp_label_type=False, shuffle=True, num_worker
     return train_loader, test_loader, valid_loader
 
 
-def get_affectnet(args, subset=True, batch_size=8, shuffle=True, num_workers=2, drop_last=False):
+def get_affectnet(args, batch_size=8, ckp_label_type=False, shuffle=True, num_workers=4, drop_last=False, augmentation=False, remove_class=None, subset=False):
     if subset:
         transforms = tv.transforms.Compose([AffectNetToTensor()])
         transforms_test = tv.transforms.Compose([AffectNetToTensor()])
-        train_ds = AffectNetSubset(train=True, args=args, transform=transforms)
-        test_ds = AffectNetSubset(train=False, args=args, transform=transforms_test)
-
-        train_loader = DataLoader(dataset=train_ds,
-                                  batch_size=batch_size,
-                                  shuffle=shuffle,
-                                  num_workers=num_workers,
-                                  drop_last=drop_last)
-
-        test_loader = DataLoader(dataset=test_ds,
-                                 batch_size=batch_size,
-                                 shuffle=shuffle,
-                                 num_workers=num_workers)
-        return train_loader, test_loader
+        # train_ds = AffectNetSubset(train=True, args=args, transform=transforms)
+        # test_ds = AffectNetSubset(train=False, args=args, transform=transforms_test)
+        #
+        # valid_ds
+        #
     else:
-        pass
+        transforms = tv.transforms.Compose([AffectNetToTensor()])
+        transforms_test = tv.transforms.Compose([AffectNetToTensor()])
+        train_ds = AffectNet(args=args, train=True, transform=transforms, ckp_label_type=ckp_label_type, remove_class=remove_class)
+        test_ds = AffectNet(train=False, args=args, transform=transforms_test, valid=False, ckp_label_type=ckp_label_type, remove_class=remove_class)
+        valid_ds = RafDB(train=False, args=args, transform=transforms_test, valid=True, ckp_label_type=ckp_label_type, remove_class=remove_class)
+
+
+    train_loader = DataLoader(dataset=train_ds,
+                              batch_size=batch_size,
+                              shuffle=shuffle,
+                              num_workers=num_workers,
+                              drop_last=drop_last)
+
+    test_loader = DataLoader(dataset=test_ds,
+                             batch_size=batch_size,
+                             shuffle=shuffle,
+                             num_workers=num_workers,
+                             drop_last=drop_last)
+
+    valid_loader = DataLoader(dataset=valid_ds,
+                              batch_size=batch_size,
+                              shuffle=shuffle,
+                              num_workers=num_workers,
+                              drop_last=drop_last)
+
+    return train_loader, test_loader, valid_loader
 
 
 # #################################################################
