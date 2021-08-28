@@ -728,7 +728,7 @@ class SCNN0(nn.Module):
 
     def build_layers(self, config: List[Union[str, int]], batch_norm: bool = False):
         """source: https://github.com/pytorch/vision/blob/16b9a40c1ca9cc3be3587625d3d58271f9fd88c2/torchvision/models/vgg.py#L69"""
-        in_channels = 3
+        in_channels = self.args.scnn_cn_in_channels  # 3 usually
         layers: List[nn.Module] = []
         for value in config:
             if value == 'M':

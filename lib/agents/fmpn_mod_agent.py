@@ -7,7 +7,8 @@ from lib.utils import save_tensor_img
 from lib.agents.agent import Agent
 from lib.dataloader.datasets import get_ckp, get_fer2013, get_rafdb
 from lib.eval.eval_utils import make_cnfmat_plot, prec_recall_fscore, roc_auc_score
-from lib.models.models import FacialMaskGenerator, PriorFusionNetwork, inceptionv3
+from lib.models.models import FacialMaskGenerator, PriorFusionNetwork, inceptionv3, SCNN0
+from torchsummary import summary
 
 
 #################
@@ -30,14 +31,14 @@ class FmpnAgentMod(Agent):
         #
         self.pfn = PriorFusionNetwork()
 
-        #
         # ADD A CONV LAYER TO THE FRONT OF INCEPTION NET
         # TO CONVOLVE FROM 4 TO 3 DIMS WITHOUT CHANGING
         # THE IMAGE SIZE
-        #
         self.cn = self.init_cn()
-        self.cn_modinp = torch.nn.Conv2d(in_channels=4, out_channels=3, kernel_size=(3, 3), padding=(1, 1))
-        self.cn = nn.Sequential(*[self.cn_modinp, self.cn])
+
+        if not self.args.cls_masks:
+            self.cn_modinp = torch.nn.Conv2d(in_channels=4, out_channels=3, kernel_size=(3, 3), padding=(1, 1))
+            self.cn = nn.Sequential(*[self.cn_modinp, self.cn])
 
 
 
@@ -56,7 +57,6 @@ class FmpnAgentMod(Agent):
             next(self.cn.parameters()).is_cuda)
         )
 
-        #
         # :TODO: LOADING DATALOADER CAN BE DONE BY EXTRA FUNCTION
         if self.args.dataset == "ckp":
             self.train_dl, self.test_dl, self.valid_dl = get_ckp(args=self.args,
@@ -130,6 +130,25 @@ class FmpnAgentMod(Agent):
         print("Initializing classification network...")
         if self.args.fmpn_cn == "inc_v3":
             return inceptionv3(pretrained=self.args.fmpn_cn_pretrained, n_classes=self.args.n_classes)
+
+        elif self.args.fmpn_cn == "scnn":
+            #
+            # laod an small cnn that will be used to classify the predicted masks
+            #
+            # do not forgett the following args
+            #
+            # args.fmpn_cn
+            # args.scnn_config
+            # args.n_classes
+            # args.scnn_in_channels  ADD
+            # args.scnn_llfeatures
+            #
+            # ADD ARGUMENT -> args.cls_masks
+            #
+            model = SCNN0(self.args)
+            print(model)
+            # print(summary(model, (1, self.args.final_size, self.args.final_size)))
+            return SCNN0(self.args)
 
     def loss_total_fn(self, loss_fmg, loss_cn):
         """0.1, 1 are lambda1, lambda2 - add to args!!!"""
@@ -366,11 +385,17 @@ class FmpnAgentMod(Agent):
 
             predicted_masks = self.fmg(images_gray).to(self.device)
 
-            #
+            # 1. Experiment
             # CONCATENATE ORIGINAL IMAGE AND PREDICTED MASK DEPTH WISE n_channels = 4
+            # 2. Experiment
+            # Provide just the mask to a simple classifier!
             #
             # dim=1 because pytorch tensor img have shape (n_imgs, n_channels, h, w)
-            heat_face = torch.cat((images, predicted_masks), dim=1)
+
+            if self.args.cls_masks:  # just provide masks to classifier
+                heat_face = predicted_masks
+            else:  # provide image concatenated depthwise to classifier. Not by multiplication.
+                heat_face = torch.cat((images, predicted_masks), dim=1)
 
             heat_face.to(self.device)
             # fusion_img, imgorg_after_pfn_prep, imgheat_after_pfn_prep = self.pfn(images, heat_face)
@@ -407,13 +432,15 @@ class FmpnAgentMod(Agent):
             classifications = self.cn(heat_face)
 
             # apply softmax to logits
-            classifications_soft = torch.softmax(classifications.logits, dim=-1)
+            if self.args.fmpn_cn == "incv3":
+                classifications_soft = torch.softmax(classifications.logits, dim=-1)
+                cn_loss = self.loss_cn_fn(classifications.logits, labels)
+            else:
+                classifications_soft = torch.softmax(classifications, dim=-1)
+                cn_loss = self.loss_cn_fn(classifications, labels)
 
             fmg_loss = self.loss_fmg_fn(predicted_masks, label_masks)
             # cn_loss = self.loss_cn_fn(classifications.logits, labels)
-            #
-            #
-            cn_loss = self.loss_cn_fn(classifications.logits, labels)
 
             epoch_fmg_loss += fmg_loss.item()
             epoch_cn_loss += cn_loss.item()
@@ -452,7 +479,10 @@ class FmpnAgentMod(Agent):
 
                 predicted_masks = self.fmg(images_gray).to(self.device)
 
-                heat_face = torch.cat((images, predicted_masks), dim=1)
+                if self.args.cls_masks:
+                    heat_face = predicted_masks
+                else:
+                    heat_face = torch.cat((images, predicted_masks), dim=1)
 
                 heat_face.to(self.device)
 
@@ -540,7 +570,11 @@ class FmpnAgentMod(Agent):
                 labels = batch["label"].to(self.device)
 
                 predicted_masks = self.fmg(images_gray).to(self.device)
-                heat_face = torch.cat((images, predicted_masks), dim=1)
+
+                if self.args.cls_masks:
+                    heat_face = predicted_masks
+                else:
+                    heat_face = torch.cat((images, predicted_masks), dim=1)
 
                 heat_face.to(self.device)
                 # fusion_img, a, b = self.pfn(images, heat_face)

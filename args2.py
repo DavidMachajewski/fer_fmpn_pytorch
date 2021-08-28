@@ -45,13 +45,19 @@ class Setup(object):
 
         # simple cnn
         parser.add_argument('--scnn_nr', type=int, default=0, help="Load one of the simple cnn models [0|1|2|...]")
-        parser.add_argument('--scnn_config', type=str, default='A', help="determine which configuration has to be loaded [A | B | C]")
+        parser.add_argument('--scnn_config', type=str, default='A', help="determine which configuration has to be "
+                                                                         "loaded [A | B | C | D | E]")
         parser.add_argument('--scnn_llfeatures', type=int, default=4096, help="width of dense layers")
+        parser.add_argument('--scnn_cn_in_channels', type=int, default=1, help="channel dimension of scnn input images")
+        parser.add_argument('--cls_masks', type=int, default=0, help="Modifies the fmpn_mod agent to classify just "
+                                                                     "the predicted masks.")
 
         # schedulers
-        parser.add_argument('--scheduler_type', type=str, default="linear_x", help='Scheduler for reducing lr ["linear_x" | "const"]')
+        parser.add_argument('--scheduler_type', type=str, default="linear_x", help='Scheduler for reducing lr ['
+                                                                                   '"linear_x" | "const"]')
         parser.add_argument('--lr_init', type=float, default=0.0001, help='initial lr at start of fmg training')
-        parser.add_argument('--lr_init_after', type=float, default=0.00001, help='initial lr after reloading fmg within fmpn network')
+        parser.add_argument('--lr_init_after', type=float, default=0.00001, help='initial lr after reloading fmg '
+                                                                                 'within fmpn network')
         parser.add_argument('--lr_end', type=int, default=0, help='linear scheduler decreases to this lr')
         parser.add_argument('--start_lr_drop', type=int, default=150, help='epoch after  fmg lr is reduced')
         parser.add_argument('--start_lr_drop_fmpn', type=int, default=400, help='epoch after fmg lr is reduced')

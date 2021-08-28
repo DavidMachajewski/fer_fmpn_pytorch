@@ -61,7 +61,7 @@ class InceptionAgent(Agent):
                                                                        shuffle=True,
                                                                        num_workers=self.args.num_workers,
                                                                        drop_last=True,
-                                                                       augmentation=self.args.augmentation,
+                                                                       augmentation=self.args.augmentation,  # not needed for affectNet
                                                                        remove_class=self.args.remove_class,  # remove class 0
                                                                        subset=False)
             print("Loaded affectnet dataset")

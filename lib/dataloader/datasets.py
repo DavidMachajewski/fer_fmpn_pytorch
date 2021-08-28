@@ -37,6 +37,7 @@ class DatasetBase(Dataset):
         pass
 
     def __load_image__(self, path):
+        # print(path)
         img = cv.imread(path)
         if self.train:
             # load bigger size image to apply random cropping while training ckp on fmpn/fmg (small dataset)
@@ -246,8 +247,11 @@ class CKP(DatasetBase):
         return len(self.img_names)
 
     def __getitem__(self, idx):
+        #print(idx)
         img_path = self.img_paths[idx]
+        #print(img_path)
         label = self.img_labels[idx]
+        #print(label)
         # load image
         img = self.__load_image__(self.images_path + img_path)
         img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
@@ -470,7 +474,8 @@ class AffectNet(DatasetBase):
         file_name = self.data.iloc[[idx]]["file_name"].values[0]
 
         if self.train:
-            if file_name[0:7] == "Manually":
+            # print("Filename prefix: ", file_name[0:7])
+            if file_name[0:8] == "Manually":
                 img_path = self.args.affectnet_img_parentfolder_man + file_name
             else:  # Automatically
                 img_path = self.args.affectnet_img_parentfolder_aut + file_name

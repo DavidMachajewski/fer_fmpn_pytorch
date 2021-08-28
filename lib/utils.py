@@ -9,7 +9,6 @@ def imshow_tensor(img, one_channel=False, path=None, show=False):
     :param one_channel:
     :return:
     """
-
     if one_channel:
         img = img.mean(dim=0)
     img = img / 2 + 0.5

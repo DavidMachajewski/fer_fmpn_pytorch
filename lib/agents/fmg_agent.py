@@ -208,7 +208,6 @@ class FmgAgent(Agent):
             label_masks = batch["mask"].to(self.device)
             labels = batch["label"]
             #
-            #
             # :TODO: Create some images for test set as well to compare train and test
             #
             predicted_masks = self.fmg(images_gray).to(self.device)

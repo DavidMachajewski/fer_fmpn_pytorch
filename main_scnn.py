@@ -8,6 +8,7 @@ from lib.agents.runner import Runner
 def train_rafdb_using_scnn():
     pass
 
+
 if __name__ == "__main__":
     args = Setup().parse()
     args.mode = "train"
@@ -21,7 +22,7 @@ if __name__ == "__main__":
     args.batch_size = 64
     args.lr_gen = 0.0005
     args.load_size = 120
-    args.final_size = 100  # rafdb Net input size
+    args.final_size = 100   # rafdb Net input size
     args.n_classes = 6  # if you use n_classes 6 then delete class nr 7!!!! otherwise 7
     args.remove_class = 7
     args.scnn_llfeatures = 2048  # 512 # 1024  # 2048 # 4096  # reduce it later if overfitting occures
