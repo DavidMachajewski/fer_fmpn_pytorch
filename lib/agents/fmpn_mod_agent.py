@@ -432,7 +432,7 @@ class FmpnAgentMod(Agent):
             classifications = self.cn(heat_face)
 
             # apply softmax to logits
-            if self.args.fmpn_cn == "incv3":
+            if self.args.fmpn_cn == "inc_v3":
                 classifications_soft = torch.softmax(classifications.logits, dim=-1)
                 cn_loss = self.loss_cn_fn(classifications.logits, labels)
             else:
