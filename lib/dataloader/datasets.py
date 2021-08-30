@@ -914,6 +914,7 @@ class RafdbToTensor(object):
         image = sample['image']
         image_gray = sample['image_gray']
         label = sample['label']
+        path = sample['img_path']
 
         image = image.transpose((2, 0, 1))
         image_gray = image_gray.transpose((2, 0, 1))
@@ -924,7 +925,8 @@ class RafdbToTensor(object):
             return {'image': to.from_numpy(image),
                     'image_gray': to.from_numpy(image_gray),
                     'mask': to.from_numpy(mask),
-                    'label': to.tensor(label)}
+                    'label': to.tensor(label),
+                    'img_path': path}
         else:
             return {'image': to.from_numpy(image),
                     'image_gray': to.from_numpy(image_gray),

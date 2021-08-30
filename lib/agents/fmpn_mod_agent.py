@@ -24,7 +24,7 @@ from torchsummary import summary
 class FmpnAgentMod(Agent):
     def __init__(self, args):
         super(FmpnAgentMod, self).__init__(args)
-        self.name = "fmpn"
+        self.name = self.args.model_to_train
         self.fmg = FacialMaskGenerator()
         #
         # PFN NOT NEEDED HERE.
