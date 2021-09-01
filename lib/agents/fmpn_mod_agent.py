@@ -37,7 +37,10 @@ class FmpnAgentMod(Agent):
         self.cn = self.init_cn()
 
         if not self.args.cls_masks:
-            self.cn_modinp = torch.nn.Conv2d(in_channels=4, out_channels=3, kernel_size=(3, 3), padding=(1, 1))
+            #
+            # in channels 4, but if you use aus additionally 5!
+            #
+            self.cn_modinp = torch.nn.Conv2d(in_channels=5, out_channels=3, kernel_size=(3, 3), padding=(1, 1))
             self.cn = nn.Sequential(*[self.cn_modinp, self.cn])
 
 
@@ -394,13 +397,15 @@ class FmpnAgentMod(Agent):
 
             if self.args.cls_masks:  # just provide masks to classifier
                 heat_face = predicted_masks
+            elif self.args.use_aus:  # provide image concatenated depthwise to classifier. Not by multiplication.
+                action_units = batch["aus"].to(self.device, dtype=torch.float)
+                #print("shape img", np.shape(images))
+                #print("shape pred", np.shape(predicted_masks))
+                #print("shape act", np.shape(action_units))
+                heat_face = torch.cat((images, predicted_masks, action_units), dim=1)
             else:  # provide image concatenated depthwise to classifier. Not by multiplication.
                 heat_face = torch.cat((images, predicted_masks), dim=1)
 
-            if self.args.use_aus:
-                # apply action units tensor to the heatface depthwise
-                action_units = batch["aus"].to(self.device)
-                heat_face = torch.cat((heat_face, action_units), dim=1)
 
             heat_face.to(self.device)
             # fusion_img, imgorg_after_pfn_prep, imgheat_after_pfn_prep = self.pfn(images, heat_face)
@@ -486,13 +491,12 @@ class FmpnAgentMod(Agent):
 
                 if self.args.cls_masks:
                     heat_face = predicted_masks
-                else:
+                elif self.args.use_aus:
+                    action_units = batch["aus"].to(self.device, dtype=torch.float)
+                    heat_face = torch.cat((images, predicted_masks, action_units), dim=1)
+                else:  # provide image concatenated depthwise to classifier. Not by multiplication.
                     heat_face = torch.cat((images, predicted_masks), dim=1)
 
-                if self.args.use_aus:
-                    # apply action units tensor to the heatface depthwise
-                    action_units = batch["aus"].to(self.device)
-                    heat_face = torch.cat((heat_face, action_units), dim=1)
 
                 heat_face.to(self.device)
 
@@ -581,15 +585,16 @@ class FmpnAgentMod(Agent):
 
                 predicted_masks = self.fmg(images_gray).to(self.device)
 
+
                 if self.args.cls_masks:
                     heat_face = predicted_masks
-                else:
+                elif self.args.use_aus:
+                    action_units = batch["aus"].to(self.device, dtype=torch.float)
+                    heat_face = torch.cat((images, predicted_masks, action_units), dim=1)
+                else:  # provide image concatenated depthwise to classifier. Not by multiplication.
                     heat_face = torch.cat((images, predicted_masks), dim=1)
 
-                if self.args.use_aus:
-                    # apply action units tensor to the heatface depthwise
-                    action_units = batch["aus"].to(self.device)
-                    heat_face = torch.cat((heat_face, action_units), dim=1)
+
 
                 heat_face.to(self.device)
                 # fusion_img, a, b = self.pfn(images, heat_face)

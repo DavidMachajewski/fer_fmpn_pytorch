@@ -273,7 +273,6 @@ class CKP(DatasetBase):
         folder_path = os.path.join(facs_folder, subfodler)
         try:
             # search for a txt file inside the folder
-            print(folder_path)
             files = glob.glob(folder_path + "/*.txt")
             action_units = np.loadtxt(files[-1])
             return action_units
@@ -296,10 +295,22 @@ class CKP(DatasetBase):
         mask = self.__load_mask__(label)
 
         if self.args.use_aus:
-            action_unit = self.action_units
+            action_unit = self.action_units[idx]
+            # print("action_unit shape: ", np.shape(action_unit))
             # expand matrix to size final_size, final_size
             au_matrix = np.zeros((self.args.final_size, self.args.final_size))
-            au_matrix[:1, :action_unit[:, 0].shape[0]] = au_matrix[:, 0]
+            # print(type(au_matrix))
+            # print("au matrix shape: ", np.shape(au_matrix))
+            if len(np.shape(action_unit)) == 2:
+                au_matrix[:1, :action_unit[:, 0].shape[0]] = action_unit[:, 0]
+                au_matrix = np.expand_dims(au_matrix, axis=2)
+
+
+            elif len(np.shape(action_unit)) < 2:
+                action_unit = np.array([action_unit])
+                au_matrix[:1, :action_unit[:, 0].shape[0]] = action_unit[:, 0]
+                au_matrix = np.expand_dims(au_matrix, axis=2)
+                # print(img_path)
 
             sample = {'image': img,
                       'image_gray': img_gray,
@@ -921,7 +932,7 @@ class RandomFlip(object):
 
         if 'mask' in sample.keys():
             mask = sample['mask']
-            if 'aus' in sample.keys() and self.args.use_aus:
+            if 'aus' in sample.keys():
                 aus = sample['aus']
                 return {'image': image,
                         'image_gray': image_gray,
@@ -977,12 +988,13 @@ class ToTensor(object):
         label, mask = sample['label'], sample['mask']
         mask = mask.transpose((2, 0, 1))
 
-        if self.args.use_aus:
+        if "aus" in sample.keys():
             aus = sample["aus"]
-            return {'image': image,
-                    'image_gray': image_gray,
-                    'label': label,
-                    'mask': mask,
+            aus = aus.transpose((2, 0, 1))
+            return {'image': to.from_numpy(image),
+                    'image_gray': to.from_numpy(image_gray),
+                    'label': to.tensor(label),
+                    'mask': to.from_numpy(mask),
                     'img_path': path,
                     'aus': aus}
         else:

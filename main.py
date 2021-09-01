@@ -287,12 +287,12 @@ if __name__ == '__main__':
     args = Setup().parse()
     """--- (1) train mask generator ---"""
     # comment "train network" section
-    run_fmg_agent()
+    # run_fmg_agent()
 
     """--- (2) train network ---"""
     # comment "train mask generator" section
-    # runner = Runner(args)
-    # runner.start()
+    runner = Runner(args)
+    runner.start()
 
 
 
