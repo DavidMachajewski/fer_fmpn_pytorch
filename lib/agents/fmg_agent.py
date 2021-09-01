@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from tqdm import trange
 from lib.agents.agent import Agent
-from lib.models.models import FacialMaskGenerator
+from lib.models.models import FacialMaskGenerator, SimpleFacialMaskGenerator
 from lib.dataloader.datasets import get_ckp
 from lib.utils import imshow_tensor, save_tensor_img
 
@@ -17,8 +17,13 @@ Args needed:
 class FmgAgent(Agent):
     def __init__(self, args):
         super(FmgAgent, self).__init__(args)
+        self.args = args
         self.name = "fmg"
-        self.fmg = FacialMaskGenerator()
+        if self.args.fmg_type == "simple":
+            print("init SimpleFacialMaskGenerator()")
+            self.fmg = SimpleFacialMaskGenerator()
+        else:
+            self.fmg = FacialMaskGenerator()
         self.train_dl, self.test_dl = get_ckp(args=self.args,
                                               batch_size=self.args.batch_size,
                                               shuffle=True,

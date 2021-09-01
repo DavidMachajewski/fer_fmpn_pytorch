@@ -397,6 +397,11 @@ class FmpnAgentMod(Agent):
             else:  # provide image concatenated depthwise to classifier. Not by multiplication.
                 heat_face = torch.cat((images, predicted_masks), dim=1)
 
+            if self.args.use_aus:
+                # apply action units tensor to the heatface depthwise
+                action_units = batch["aus"].to(self.device)
+                heat_face = torch.cat((heat_face, action_units), dim=1)
+
             heat_face.to(self.device)
             # fusion_img, imgorg_after_pfn_prep, imgheat_after_pfn_prep = self.pfn(images, heat_face)
 
@@ -435,7 +440,7 @@ class FmpnAgentMod(Agent):
             if self.args.fmpn_cn == "inc_v3":
                 classifications_soft = torch.softmax(classifications.logits, dim=-1)
                 cn_loss = self.loss_cn_fn(classifications.logits, labels)
-            else:
+            else:  # the scnn for example does not have multiple cls output like our used inception net
                 classifications_soft = torch.softmax(classifications, dim=-1)
                 cn_loss = self.loss_cn_fn(classifications, labels)
 
@@ -483,6 +488,11 @@ class FmpnAgentMod(Agent):
                     heat_face = predicted_masks
                 else:
                     heat_face = torch.cat((images, predicted_masks), dim=1)
+
+                if self.args.use_aus:
+                    # apply action units tensor to the heatface depthwise
+                    action_units = batch["aus"].to(self.device)
+                    heat_face = torch.cat((heat_face, action_units), dim=1)
 
                 heat_face.to(self.device)
 
@@ -575,6 +585,11 @@ class FmpnAgentMod(Agent):
                     heat_face = predicted_masks
                 else:
                     heat_face = torch.cat((images, predicted_masks), dim=1)
+
+                if self.args.use_aus:
+                    # apply action units tensor to the heatface depthwise
+                    action_units = batch["aus"].to(self.device)
+                    heat_face = torch.cat((heat_face, action_units), dim=1)
 
                 heat_face.to(self.device)
                 # fusion_img, a, b = self.pfn(images, heat_face)

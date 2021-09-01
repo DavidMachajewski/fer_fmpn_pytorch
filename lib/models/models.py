@@ -83,6 +83,34 @@ class ResNet18(nn.Module):
         return self.resnet(input)
 
 
+class SimpleFacialMaskGenerator(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.encoder = nn.Sequential(
+            nn.Conv2d(1, 128, (7,7), (1,1), (3,3)),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(128, 256, (4, 4), (2, 2), (1, 1)),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True)
+        )
+        self.decoder = nn.Sequential(
+            # upscaling input image
+            nn.ConvTranspose2d(256, 64, (4, 4), (2, 2), (1, 1), (1, 1)),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True)
+        )
+        self.top = nn.Conv2d(64, 1, (7, 7), (1, 1), (3, 3), bias=False)
+        self.sigmoid = nn.Sigmoid()
+
+
+    def forward(self, input):
+        input = self.encoder(input)
+        input = self.decoder(input)
+        input = self.top(input)
+        return self.sigmoid(input)
+
+
 class FacialMaskGenerator(nn.Module):
     """Implementation of the Facial Mask Generator (FMG).
     Take grayscaled face images and its corresponding

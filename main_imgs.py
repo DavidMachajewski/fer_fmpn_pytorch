@@ -148,14 +148,17 @@ def plot_histogram(path):
     cv.imshow("", img)
     plt.show()
     cv.waitKey()
-    cv.imwrite("C:/root/uni/bachelor/bachelor_arbeit/face_expression_recognition_thesis\images\histograms/hist_1_mask.png", img)
+    #cv.imwrite("C:/root/uni/bachelor/bachelor_arbeit/face_expression_recognition_thesis\images\histograms/hist_6_gray_img.png", img)
+    cv.imwrite("C:/root/uni/bachelor/bachelor_arbeit/face_expression_recognition_thesis\images\histograms/hist_6_mask.png",img)
     plt.hist(img.ravel(), 256, [0, 256])
     plt.yscale('log', base=10)
-    plt.savefig("C:/root/uni/bachelor/bachelor_arbeit/face_expression_recognition_thesis\images\histograms/hist_1_mask_hist.png", bbox_inches='tight', dpi=300)
+    #plt.savefig("C:/root/uni/bachelor/bachelor_arbeit/face_expression_recognition_thesis\images\histograms/hist_6_gray_img_hist.png", bbox_inches='tight', dpi=300)
+    plt.savefig("C:/root/uni/bachelor/bachelor_arbeit/face_expression_recognition_thesis\images\histograms/hist_6_mask_hist.png",bbox_inches='tight', dpi=300)
     plt.show()
 
 
 def plot_histogram_bgr(path):
+    print("Create histogram for an rgb image")
     img = cv.imread(path, cv.IMREAD_COLOR)
     cv.imshow("", img)
     plt.show()
@@ -167,13 +170,20 @@ def plot_histogram_bgr(path):
         histr = cv.calcHist([img], [i], None, [256], [0, 256])
         plt.plot(histr, color=col)
         plt.xlim([0, 256])
-    plt.savefig("C:/root/uni/bachelor/bachelor_arbeit/face_expression_recognition_thesis\images\histograms/hist_1_fusioned.png", bbox_inches='tight', dpi=300)
+    plt.savefig("C:/root/uni/bachelor/bachelor_arbeit/face_expression_recognition_thesis\images\histograms/hist_6_fusioned.png", bbox_inches='tight', dpi=300)
     plt.show()
 
 
 if __name__ == "__main__":
     args = Setup().parse()
-    image = "E:\david_bachelor_trainierte_netzwerke/final3107\ckp/fmpn\pretrained/run_fmpn_2021-07-30_23-40-24/train_fmpn_2021-07-30_23-40-24\plots\gray_img_1_epoch_399_batch_0.png"
-    mask = "E:\david_bachelor_trainierte_netzwerke/final3107\ckp/fmpn\pretrained/run_fmpn_2021-07-30_23-40-24/train_fmpn_2021-07-30_23-40-24\plots\pred_mask_1_epoch_399_batch_0.png"
+    # image = "E:\david_bachelor_trainierte_netzwerke/final3107\ckp/fmpn\pretrained/run_fmpn_2021-07-30_23-40-24/train_fmpn_2021-07-30_23-40-24\plots/fusioned_img_6_epoch_498_batch_0.png"
+    # mask = "E:\david_bachelor_trainierte_netzwerke/final3107\ckp/fmpn\pretrained/run_fmpn_2021-07-30_23-40-24/train_fmpn_2021-07-30_23-40-24\plots\pred_mask_6_epoch_498_batch_0.png"
     # create_sample_plot(args=args, dataset="affectnet")
-    plot_histogram(path=mask)
+    # plot_histogram(path=mask)
+    ckp = CKP(args=args, train=True, valid=False)
+
+
+
+
+
+

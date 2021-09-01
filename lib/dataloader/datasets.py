@@ -7,6 +7,7 @@ import cv2 as cv
 import numpy as np
 import torchvision as tv
 import torchvision.transforms as transforms
+import glob
 
 
 class DatasetBase(Dataset):
@@ -223,7 +224,7 @@ class CKP(DatasetBase):
         self.img_names = pd.read_csv(self.path_csv, index_col=False, header=None).values.tolist()
         # print("image names: ", self.img_names)
         self.img_names = [img_name[0] for img_name in self.img_names]
-        self.img_paths, self.img_labels = self.__get_paths_and_labels__()
+        self.img_paths, self.img_labels, self.action_units = self.__get_paths_and_labels__()
 
     def __get_paths_and_labels__(self):
         get_tag = lambda name: name[0:8]
@@ -232,37 +233,86 @@ class CKP(DatasetBase):
         ds_labels = pickle.load(open(self.args.labels, "rb"))
 
         get_tags = lambda name: (name[0:4], name[5:8])
+
         img_paths, labels = [], []
+        aus_paths, action_units_array = [], []  # aus - action units
+
+        get_tag_full = lambda name: name[0:17]
+        ds_tags_full = list(map(get_tag_full, self.img_names))
+        get_full_tags = lambda name: (name[0:4], name[5:8], name[9:17])
+
         for i in range(self.__len__()):
             imgname = self.img_names[i]
+
             tags = get_tags(imgname)
             imgtag = ds_tags[i]
             image_path = os.path.join(tags[0], tags[1], imgname)
+
             label = int(ds_labels[imgtag]) - 1  # -1 because CK+ has labels 1-7 -> convert to 0-6
             img_paths.append(image_path)
             labels.append(label)
-        return img_paths, labels
+
+            # get aus
+            tags_full = get_full_tags(imgname)
+            aus_filename = tags_full[0] + "_" + tags_full[1] + "_" + tags_full[2] + "_facs.txt"
+
+            au_folder = os.path.join(tags_full[0], tags_full[1])
+            au_path = os.path.join(tags_full[0], tags_full[1], aus_filename)
+
+            aus_paths.append(au_path)
+            # load au file an save as 2 dim np.array of size final_size
+            # aus.append()
+            action_units = self.__load_au__(au_folder)
+
+            action_units_array.append(action_units)
+        return img_paths, labels, action_units_array
+
+    def __load_au__(self, subfodler):
+        """filename_subp is like S125\007\S125_007_00000009_facs.txt"""
+        facs_folder = self.args.facs_folder
+        folder_path = os.path.join(facs_folder, subfodler)
+        try:
+            # search for a txt file inside the folder
+            print(folder_path)
+            files = glob.glob(folder_path + "/*.txt")
+            action_units = np.loadtxt(files[-1])
+            return action_units
+        except:
+            raise Exception("Could not load action unit file. Path correct?")
 
     def __len__(self):
         return len(self.img_names)
 
     def __getitem__(self, idx):
-        #print(idx)
+        # print(idx)
         img_path = self.img_paths[idx]
-        #print(img_path)
+        # print(img_path)
         label = self.img_labels[idx]
-        #print(label)
+        # print(label)
         # load image
         img = self.__load_image__(self.images_path + img_path)
         img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
         img_gray = np.expand_dims(img_gray, axis=-1)  # (W;H;1)
         mask = self.__load_mask__(label)
 
-        sample = {'image': img,
-                  'image_gray': img_gray,
-                  'label': label,
-                  'mask': mask,
-                  'img_path': img_path}
+        if self.args.use_aus:
+            action_unit = self.action_units
+            # expand matrix to size final_size, final_size
+            au_matrix = np.zeros((self.args.final_size, self.args.final_size))
+            au_matrix[:1, :action_unit[:, 0].shape[0]] = au_matrix[:, 0]
+
+            sample = {'image': img,
+                      'image_gray': img_gray,
+                      'label': label,
+                      'mask': mask,
+                      'img_path': img_path,
+                      'aus': au_matrix}
+        else:
+            sample = {'image': img,
+                      'image_gray': img_gray,
+                      'label': label,
+                      'mask': mask,
+                      'img_path': img_path}
         # for debugging you can add image path to the dict
 
         if self.transform:
@@ -685,7 +735,8 @@ def get_rafdb(args, batch_size=8, ckp_label_type=False, shuffle=True, num_worker
     return train_loader, test_loader, valid_loader
 
 
-def get_affectnet(args, batch_size=8, ckp_label_type=False, shuffle=True, num_workers=4, drop_last=False, augmentation=False, remove_class=None, subset=False):
+def get_affectnet(args, batch_size=8, ckp_label_type=False, shuffle=True, num_workers=4, drop_last=False,
+                  augmentation=False, remove_class=None, subset=False):
     if subset:
         transforms = tv.transforms.Compose([AffectNetToTensor()])
         transforms_test = tv.transforms.Compose([AffectNetToTensor()])
@@ -697,10 +748,12 @@ def get_affectnet(args, batch_size=8, ckp_label_type=False, shuffle=True, num_wo
     else:
         transforms = tv.transforms.Compose([AffectNetToTensor()])
         transforms_test = tv.transforms.Compose([AffectNetToTensor()])
-        train_ds = AffectNet(args=args, train=True, transform=transforms, ckp_label_type=ckp_label_type, remove_class=remove_class)
-        test_ds = AffectNet(train=False, args=args, transform=transforms_test, valid=False, ckp_label_type=ckp_label_type, remove_class=remove_class)
-        valid_ds = RafDB(train=False, args=args, transform=transforms_test, valid=True, ckp_label_type=ckp_label_type, remove_class=remove_class)
-
+        train_ds = AffectNet(args=args, train=True, transform=transforms, ckp_label_type=ckp_label_type,
+                             remove_class=remove_class)
+        test_ds = AffectNet(train=False, args=args, transform=transforms_test, valid=False,
+                            ckp_label_type=ckp_label_type, remove_class=remove_class)
+        valid_ds = RafDB(train=False, args=args, transform=transforms_test, valid=True, ckp_label_type=ckp_label_type,
+                         remove_class=remove_class)
 
     train_loader = DataLoader(dataset=train_ds,
                               batch_size=batch_size,
@@ -744,6 +797,15 @@ class Normalization(object):
 
         if self.args.norm_orig_img:
             image = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(image)
+
+        if self.args.use_aus:
+            aus = sample['aus']
+            return {'image': image,
+                    'image_gray': image_gray,
+                    'label': label,
+                    'mask': mask,
+                    'img_path': path,
+                    'aus': aus}
 
         return {'image': image,
                 'image_gray': image_gray,
@@ -827,6 +889,16 @@ class RandomCrop(object):
 
         image = image[top: top + new_h, left: left + new_w]
         image_gray = image_gray[top: top + new_h, left: left + new_w]
+
+        if self.args.use_aus:
+            aus = sample['aus']
+            return {'image': image,
+                    'image_gray': image_gray,
+                    'label': label,
+                    'mask': mask,
+                    'img_path': path,
+                    'aus': aus}
+
         return {'image': image,
                 'image_gray': image_gray,
                 'label': label,
@@ -849,11 +921,20 @@ class RandomFlip(object):
 
         if 'mask' in sample.keys():
             mask = sample['mask']
-            return {'image': image,
-                    'image_gray': image_gray,
-                    'label': label,
-                    'mask': mask,
-                    'img_path': path}
+            if 'aus' in sample.keys() and self.args.use_aus:
+                aus = sample['aus']
+                return {'image': image,
+                        'image_gray': image_gray,
+                        'label': label,
+                        'mask': mask,
+                        'img_path': path,
+                        'aus': aus}
+            else:
+                return {'image': image,
+                        'image_gray': image_gray,
+                        'label': label,
+                        'mask': mask,
+                        'img_path': path}
         else:
             return {'image': image,
                     'image_gray': image_gray,
@@ -895,11 +976,21 @@ class ToTensor(object):
 
         label, mask = sample['label'], sample['mask']
         mask = mask.transpose((2, 0, 1))
-        return {'image': to.from_numpy(image),
-                'image_gray': to.from_numpy(image_gray),
-                'label': to.tensor(label),
-                'mask': to.from_numpy(mask),
-                'img_path': path}
+
+        if self.args.use_aus:
+            aus = sample["aus"]
+            return {'image': image,
+                    'image_gray': image_gray,
+                    'label': label,
+                    'mask': mask,
+                    'img_path': path,
+                    'aus': aus}
+        else:
+            return {'image': to.from_numpy(image),
+                    'image_gray': to.from_numpy(image_gray),
+                    'label': to.tensor(label),
+                    'mask': to.from_numpy(mask),
+                    'img_path': path}
 
 
 class AffectNetToTensor(object):

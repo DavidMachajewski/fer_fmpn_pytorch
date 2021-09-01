@@ -99,7 +99,8 @@ def run_fmg_agent():
     args.epochs = 300  # 300
     args.start_lr_drop = 150
     args.model_to_train = "fmg"
-    args.batch_size = 16
+    args.fmg_type = "simple"
+    args.batch_size = 8
     args.save_ckpt_intv = 150
     # args.trainsplit = "train_ids_2.csv"
     # args.testsplit = "test_ids_2.csv"
@@ -116,6 +117,7 @@ def run_fmg_agent():
         # print(args.trainsplit)
         # print(args.testsplit)
         fmgagent = FmgAgent(args)
+        print(fmgagent)
         fmgagent.run()
 
     #fmgagent.test("./results/run_fmg_2021-04-14_13-57-45/test_fmg_2021-04-14_13-57-45\plots/")
@@ -285,12 +287,12 @@ if __name__ == '__main__':
     args = Setup().parse()
     """--- (1) train mask generator ---"""
     # comment "train network" section
-    # run_fmg_agent()
+    run_fmg_agent()
 
     """--- (2) train network ---"""
     # comment "train mask generator" section
-    runner = Runner(args)
-    runner.start()
+    # runner = Runner(args)
+    # runner.start()
 
 
 
