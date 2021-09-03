@@ -262,7 +262,7 @@ class CKP(DatasetBase):
             aus_paths.append(au_path)
             # load au file an save as 2 dim np.array of size final_size
             # aus.append()
-            if self.args.use_au:
+            if self.args.use_aus:
                 action_units = self.__load_au__(au_folder)
 
                 action_units_array.append(action_units)
