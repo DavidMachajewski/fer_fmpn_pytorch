@@ -224,7 +224,8 @@ class CKP(DatasetBase):
         self.img_names = pd.read_csv(self.path_csv, index_col=False, header=None).values.tolist()
         # print("image names: ", self.img_names)
         self.img_names = [img_name[0] for img_name in self.img_names]
-        self.img_paths, self.img_labels, self.action_units = self.__get_paths_and_labels__()
+        # self.img_paths, self.img_labels, self.action_units = self.__get_paths_and_labels__()
+        self.img_paths, self.img_labels = self.__get_paths_and_labels__()
 
     def __get_paths_and_labels__(self):
         get_tag = lambda name: name[0:8]
@@ -235,11 +236,11 @@ class CKP(DatasetBase):
         get_tags = lambda name: (name[0:4], name[5:8])
 
         img_paths, labels = [], []
-        aus_paths, action_units_array = [], []  # aus - action units
+        # aus_paths, action_units_array = [], []  # aus - action units
 
-        get_tag_full = lambda name: name[0:17]
-        ds_tags_full = list(map(get_tag_full, self.img_names))
-        get_full_tags = lambda name: (name[0:4], name[5:8], name[9:17])
+        # get_tag_full = lambda name: name[0:17]
+        # ds_tags_full = list(map(get_tag_full, self.img_names))
+        # get_full_tags = lambda name: (name[0:4], name[5:8], name[9:17])
 
         for i in range(self.__len__()):
             imgname = self.img_names[i]
@@ -253,6 +254,7 @@ class CKP(DatasetBase):
             labels.append(label)
 
             # get aus
+            """
             tags_full = get_full_tags(imgname)
             aus_filename = tags_full[0] + "_" + tags_full[1] + "_" + tags_full[2] + "_facs.txt"
 
@@ -268,7 +270,9 @@ class CKP(DatasetBase):
                 action_units_array.append(action_units)
                 return img_paths, labels, action_units_array
             else:
-                return img_paths, labels, None
+                return img_paths, labels
+            """
+            return img_paths, labels
 
     def __load_au__(self, subfodler):
         """filename_subp is like S125\007\S125_007_00000009_facs.txt"""
