@@ -301,6 +301,7 @@ class CKP(DatasetBase):
         img_gray = np.expand_dims(img_gray, axis=-1)  # (W;H;1)
         mask = self.__load_mask__(label)
 
+        """
         if self.args.use_aus:
             action_unit = self.action_units[idx]
             # print("action_unit shape: ", np.shape(action_unit))
@@ -331,6 +332,12 @@ class CKP(DatasetBase):
                       'label': label,
                       'mask': mask,
                       'img_path': img_path}
+        """
+        sample = {'image': img,
+                  'image_gray': img_gray,
+                  'label': label,
+                  'mask': mask,
+                  'img_path': img_path}
         # for debugging you can add image path to the dict
 
         if self.transform:
