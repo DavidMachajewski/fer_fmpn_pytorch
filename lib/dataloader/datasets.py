@@ -262,10 +262,13 @@ class CKP(DatasetBase):
             aus_paths.append(au_path)
             # load au file an save as 2 dim np.array of size final_size
             # aus.append()
-            action_units = self.__load_au__(au_folder)
+            if self.args.use_au:
+                action_units = self.__load_au__(au_folder)
 
-            action_units_array.append(action_units)
-        return img_paths, labels, action_units_array
+                action_units_array.append(action_units)
+                return img_paths, labels, action_units_array
+            else:
+                return img_paths, labels, None
 
     def __load_au__(self, subfodler):
         """filename_subp is like S125\007\S125_007_00000009_facs.txt"""
