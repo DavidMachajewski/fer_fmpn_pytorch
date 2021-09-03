@@ -272,7 +272,7 @@ class CKP(DatasetBase):
             else:
                 return img_paths, labels
             """
-            return img_paths, labels
+        return img_paths, labels
 
     def __load_au__(self, subfodler):
         """filename_subp is like S125\007\S125_007_00000009_facs.txt"""
