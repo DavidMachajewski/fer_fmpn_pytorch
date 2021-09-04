@@ -40,7 +40,9 @@ class FmpnAgentMod(Agent):
             #
             # in channels 4, but if you use aus additionally 5!
             #
-            self.cn_modinp = torch.nn.Conv2d(in_channels=5, out_channels=3, kernel_size=(3, 3), padding=(1, 1))
+            # if condition
+            #
+            self.cn_modinp = torch.nn.Conv2d(in_channels=4, out_channels=3, kernel_size=(3, 3), padding=(1, 1))
             self.cn = nn.Sequential(*[self.cn_modinp, self.cn])
 
 
