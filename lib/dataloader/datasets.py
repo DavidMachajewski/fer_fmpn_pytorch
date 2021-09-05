@@ -773,12 +773,9 @@ def get_affectnet(args, batch_size=8, ckp_label_type=False, shuffle=True, num_wo
     else:
         transforms = tv.transforms.Compose([AffectNetToTensor()])
         transforms_test = tv.transforms.Compose([AffectNetToTensor()])
-        train_ds = AffectNet(args=args, train=True, transform=transforms, ckp_label_type=ckp_label_type,
-                             remove_class=remove_class)
-        test_ds = AffectNet(train=False, args=args, transform=transforms_test, valid=False,
-                            ckp_label_type=ckp_label_type, remove_class=remove_class)
-        valid_ds = RafDB(train=False, args=args, transform=transforms_test, valid=True, ckp_label_type=ckp_label_type,
-                         remove_class=remove_class)
+        train_ds = AffectNet(train=True, args=args, transform=transforms, ckp_label_type=ckp_label_type, remove_class=remove_class)
+        test_ds = AffectNet(train=False, args=args, transform=transforms_test, valid=False, ckp_label_type=ckp_label_type, remove_class=remove_class)
+        valid_ds = AffectNet(train=False, args=args, transform=transforms_test, valid=True, ckp_label_type=ckp_label_type, remove_class=remove_class)
 
     train_loader = DataLoader(dataset=train_ds,
                               batch_size=batch_size,
