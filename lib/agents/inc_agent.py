@@ -325,4 +325,7 @@ class InceptionAgent(Agent):
         return torch.mean((classes == labels).float())
 
     def __adjust_lr__(self):
-        pass
+        if self.args.scheduler_type == "factor":
+            self.opt.param_groups[0]['lr'] = self.opt.param_groups[0]['lr'] * (1 - self.args.reduce_by_factor)
+        else:
+            pass

@@ -490,6 +490,13 @@ class AffectNet(DatasetBase):
     8: None
     9: Uncertain
     10: No-Face
+
+    Training note:
+    If you want to train AffectNet compareable to FMPN training
+    remove class 0, set n_classes 7 and choose ckp_label_type 1.
+
+    If you want to train a network with 8 class problem (including neutral)
+    then choose n_classes 8, ckp_label_type 0 and do not specify a remove_class argument
     """
 
     def __init__(self, args, train: bool, transform=None, valid=False, ckp_label_type=False, remove_class=None):
@@ -512,7 +519,7 @@ class AffectNet(DatasetBase):
 
     def __remove_emotion__(self):
         """remove a given emotion from the dataset"""
-        # print("remove class nr. {}".format(self.remove_class))
+        print("remove class nr. {}".format(self.remove_class))
         if isinstance(self.remove_class, int):
             print("Removing class nr. {}".format(self.remove_class))
             self.data = self.data[self.data["label"] != self.remove_class]
@@ -566,7 +573,7 @@ class AffectNet(DatasetBase):
         img_gray = np.expand_dims(img_gray, axis=-1)  # (W;H;1)
 
         # convert label to ckp label
-        if self.ckp_label_type:  # ckp_label_type implies that neutral class is removed
+        if self.ckp_label_type:  # ckp_label_type implies that neutral class must be removed!!!
             label = self.convert_label(label)
             mask_label = self.convert_label_to_masklabel(label[0])
             mask = self.__load_mask__(mask_label)

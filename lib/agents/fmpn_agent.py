@@ -133,9 +133,6 @@ class FmpnAgent(Agent):
             factor_fmg = (self.args.lr_init_after - self.args.lr_end) / (
                     self.args.epochs - self.args.start_lr_drop_fmpn)
 
-            # print("adjusting factor cn: ", factor_cn)
-            # print("adjusting factor fmg: ", factor_fmg)
-
             if self.tmp_epoch >= self.args.start_lr_drop_fmpn:  # >= 400
                 # we load fmg with tmp_epoch value of 300
                 # for group in self.opt.param_groups:

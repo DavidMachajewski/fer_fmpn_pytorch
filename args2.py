@@ -38,6 +38,7 @@ class Setup(object):
         parser.add_argument('--optimizer', type=str, default="adam", help='optimizer')
         parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for Adam optimizer')
         parser.add_argument('--lr_gen', type=float, default=0.001, help="General learning rate for trainings.")
+        parser.add_argument('--reduce_by_factor', type=float, default=0.1, help="Reduce learning rate by this factor.")
 
         # fmg loss lambdas
         parser.add_argument('--fmg_type', type=str, default="std", help="[std | simple]")
@@ -55,7 +56,7 @@ class Setup(object):
 
         # schedulers
         parser.add_argument('--scheduler_type', type=str, default="linear_x", help='Scheduler for reducing lr ['
-                                                                                   '"linear_x" | "const"]')
+                                                                                   '"linear_x" | "const" | "factor"]')
         parser.add_argument('--lr_init', type=float, default=0.0001, help='initial lr at start of fmg training')
         parser.add_argument('--lr_init_after', type=float, default=0.00001, help='initial lr after reloading fmg '
                                                                                  'within fmpn network')
