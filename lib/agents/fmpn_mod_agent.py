@@ -349,6 +349,11 @@ class FmpnAgentMod(Agent):
                 #   and the train accuracy is nearly 1.0
                 if self.max_acc < epoch_val_acc:
                     self.max_acc = epoch_val_acc
+                    if self.dataset == "affectnet" and epoch_acc < 0.9899:
+                        print("Saving best checkpoint so far...")
+                        self.save_ckpt()
+                        self.save_resultlists_as_dict(
+                            self.train_path + "/" + "epoch_" + str(epoch) + "_train_logs.pickle")
                     if epoch_acc > 0.9899:
                         # save best tmp checkpoint
                         print("Saving best checkpoint so far...")
