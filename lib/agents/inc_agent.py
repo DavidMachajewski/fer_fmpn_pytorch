@@ -148,6 +148,11 @@ class InceptionAgent(Agent):
 
                 if self.max_acc < test_acc:
                     self.max_acc = test_acc
+                    if self.dataset == "affectnet" and test_acc < 0.9899:
+                        print("Saving best checkpoint so far...")
+                        self.save_ckpt()
+                        self.save_resultlists_as_dict(
+                            self.train_path + "/" + "epoch_" + str(epoch) + "_train_logs.pickle")
                     if test_acc > 0.9899:
                         print("Saving best checkpoint so far...")
                         self.save_ckpt()

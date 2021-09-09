@@ -39,7 +39,12 @@ class DatasetBase(Dataset):
 
     def __load_image__(self, path):
         # print(path)
+
         img = cv.imread(path)
+
+        if img is None:
+            img = np.zeros(shape=(self.args.load_size, self.args.load_size, 3))
+
         if self.train:
             # load bigger size image to apply random cropping while training ckp on fmpn/fmg (small dataset)
             img = cv.resize(img, (self.args.load_size, self.args.load_size))
@@ -506,6 +511,7 @@ class AffectNet(DatasetBase):
         self.transform = transform
         self.remove_class = remove_class
         self.ckp_label_type = ckp_label_type
+        self.length = None
         self.__load_file__()
         self.__remove_emotion__()
         #
@@ -548,7 +554,7 @@ class AffectNet(DatasetBase):
         return label - 1
 
     def __len__(self):
-        return len(self.data)  # check if this works for dataframes!
+        return self.data.shape[0]  # check if this works for dataframes!
 
     def __getitem__(self, idx):
         label = self.data.iloc[[idx]]["label"].values
@@ -558,9 +564,15 @@ class AffectNet(DatasetBase):
         if self.train:
             # print("Filename prefix: ", file_name[0:7])
             if file_name[0:8] == "Manually":
+                #print("train manually")
+                #print("affectnet filename: ", file_name)
                 img_path = self.args.affectnet_img_parentfolder_man + file_name
+                #print("affectnet filename concat: ", img_path)
             else:  # Automatically
+                #print("train automatically")
+                #print("affectnet filename else: ", file_name)
                 img_path = self.args.affectnet_img_parentfolder_aut + file_name
+                #print("affectnet filename concat: ", img_path)
         elif not self.train and not self.valid:
             img_path = self.args.affectnet_img_parentfolder_man + file_name
         elif self.valid and not self.train:

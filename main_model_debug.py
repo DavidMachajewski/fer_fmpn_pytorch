@@ -1,9 +1,9 @@
 from args2 import Setup
-from lib.models.models import SCNN1
 import os
 import cv2 as cv
 import csv
 import pandas as pd
+from lib.dataloader.datasets import get_affectnet, AffectNet
 
 
 def average_confusion_matrix(folder):
@@ -80,6 +80,50 @@ if __name__ == "__main__":
     save_to = "D:\projects\pyprojects/fer_fmpn_pytorch\datasets/rafdb/new/"
     # file_name = "train_ids_0.csv"
     # file_name = "test_ids_0.csv"
-    file_name = "valid_ids_0.csv"
-    remove_corrputed_images_from_splits(ptc, val, save_to, file_name)
+    # file_name = "valid_ids_0.csv"
+    # remove_corrputed_images_from_splits(ptc, val, save_to, file_name)
 
+    args.trainsplit = "train_ids_0.csv"
+    args.testsplit = "test_ids_0.csv"
+    args.validsplit = "valid_ids_0.csv"
+
+    args.affectnet_img_parentfolder_man = "D:/Downloads/Manually_Annotated_compressed/"
+    args.affectnet_img_parentfolder_aut = "D:/Downloads/Automatically_Annotated_compressed/"
+    args.final_size = 299
+    args.load_size = 299
+
+    # train_dl, test_dl, valid_dl = get_affectnet(args=args, batch_size=8, ckp_label_type=1,remove_class=0)
+
+    af = AffectNet(args=args, train=True, remove_class=0, ckp_label_type=1)
+
+    af_test = AffectNet(train=False, args=args, valid=False, ckp_label_type=1, remove_class=0)
+    af_valid = AffectNet(train=False, args=args, valid=True, ckp_label_type=1, remove_class=0)
+
+    for i in range(len(af)):
+        sample = af[i]
+        if i % 10000 == 0:
+            print("current idx: ", i)
+            print(sample['image'])
+
+    for j in range(len(af_test)):
+        sample = af[j]
+        if j % 1000 == 0:
+            print("current idx: ", j)
+            print(sample['image'])
+
+    for k in range(len(af_valid)):
+        sample = af[k]
+        if k % 1000 == 0:
+            print("current idx: ", k)
+            print(sample['image'])
+
+
+
+
+
+"""
+    for i, batch in enumerate(train_dl):
+        if i % 10000 == 0:
+            print(i)
+        images = batch["image"]
+"""
