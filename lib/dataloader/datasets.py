@@ -885,7 +885,8 @@ class Fer2013RandomCrop(object):
         image = sample['image']
         image_gray = sample['image_gray']
         label = sample['label']
-        path = sample['img_path']
+        if "img_path" in sample.keys():
+            path = sample['img_path']
 
         h, w = image.shape[:2]
         new_h, new_w = self.args.final_size, self.args.final_size
@@ -901,8 +902,8 @@ class Fer2013RandomCrop(object):
             return {'image': image,
                     'image_gray': image_gray,
                     'label': label,
-                    'mask': mask,
-                    'img_path': path}
+                    'mask': mask}
+                    #'img_path': path
         else:
             return {'image': image,
                     'image_gray': image_gray,
