@@ -1039,8 +1039,19 @@ class AffectNetToTensor(object):
     def __call__(self, sample):
         image = sample['image']
         label = sample['label']
+        mask = sample['mask']
+        image_gray = sample['image_gray']
         image = image.transpose((2, 0, 1))
+        image_gray = image_gray.transpose((2, 0, 1))
+        mask = mask.transpose((2, 0, 1))
+
+        #
+        # if ckp_label_type!!!
+        #
+
         return {'image': to.from_numpy(image),
+                "image_gray": to.tensor(image_gray),
+                "mask": to.tensor(mask),
                 'label': to.tensor(label)}
 
 
