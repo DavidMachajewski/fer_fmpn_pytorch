@@ -956,7 +956,10 @@ class RandomFlip(object):
         image = sample['image']
         label = sample['label']
         image_gray = sample['image_gray']
-        path = sample["img_path"]
+        if "img_path" in sample.keys():
+            path = sample["img_path"]
+        else:
+            path = None
 
         image = tv.transforms.RandomHorizontalFlip(p=0.5)(image)
         image_gray = tv.transforms.RandomHorizontalFlip(p=0.5)(image_gray)
