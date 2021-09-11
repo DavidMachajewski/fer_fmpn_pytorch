@@ -583,20 +583,16 @@ class FmpnAgent(Agent):
             # print("val_acc: ", epoch_val_acc)
             # print("val_loss: {0} \t val_accuracy: {1}".format(epoch_total_val_loss, epoch_val_acc))
 
-            #
-            # NOTE: FMPN does not support neutral class! Therefore no case for ==7
-            #
             if self.args.dataset == "ckp":
                 classnames = None
             elif self.args.dataset == "fer":  # 6 classes without neutral image
                 if self.args.n_classes == 6:
+                    # NOTE: FMPN does not support neutral class! Therefore no case for ==7
                     classnames = ["anger", "disgust", "fear", "happy", "sadness", "surprise"]
             elif self.args.dataset == "rafdb":
                 classnames = ['surprise', 'fear', 'disgust', 'happiness', 'sadness', 'anger']
-
-            """
-             0 surprise, 1 fear, 2 disgust, 3 happiness, 4 sadness, 5 anger, 6 neutral
-            """
+            elif self.args.dataset == "affectnet":
+                classnames = ['happiness', 'sadness', 'surprise', 'fear', 'disgust', 'anger', 'contempt']
 
             cnfmat = make_cnfmat_plot(labels=all_labels,
                                       predictions=all_predictions,
