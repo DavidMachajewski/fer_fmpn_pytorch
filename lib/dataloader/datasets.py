@@ -660,7 +660,8 @@ def get_ckp(args, batch_size=8, shuffle=True, num_workers=2, drop_last=False, va
     if valid is None:
         valid = False
     transforms = tv.transforms.Compose([RandomCrop(args), ToTensor(), RandomFlip(), Normalization(args)])
-    transforms_test = tv.transforms.Compose([ToTensor(), Normalization(args)])
+    # transforms_test = tv.transforms.Compose([ToTensor(), Normalization(args)])
+    transforms_test = tv.transforms.Compose([ToTensor()])
     train_ds = CKP(train=True, args=args, transform=transforms)
     test_ds = CKP(train=False, args=args, transform=transforms_test)
 
@@ -790,8 +791,17 @@ def get_affectnet(args, batch_size=8, ckp_label_type=False, shuffle=True, num_wo
         # valid_ds
         #
     else:
-        transforms = tv.transforms.Compose([AffectNetToTensor()])
-        transforms_test = tv.transforms.Compose([AffectNetToTensor()])
+        #
+        # added augmentation
+        #   random crop
+        #   hor flip
+        #
+        if augmentation:
+            transforms = tv.transforms.Compose([Fer2013RandomCrop(args), AffectNetToTensor(), RandomFlip(), Fer2013Normalization(args)])
+            transforms_test = tv.transforms.Compose([AffectNetToTensor(), Fer2013Normalization(args)])
+        else:
+            transforms = tv.transforms.Compose([AffectNetToTensor()])
+            transforms_test = tv.transforms.Compose([AffectNetToTensor()])
         train_ds = AffectNet(train=True, args=args, transform=transforms, ckp_label_type=ckp_label_type, remove_class=remove_class)
         test_ds = AffectNet(train=False, args=args, transform=transforms_test, valid=False, ckp_label_type=ckp_label_type, remove_class=remove_class)
         valid_ds = AffectNet(train=False, args=args, transform=transforms_test, valid=True, ckp_label_type=ckp_label_type, remove_class=remove_class)
@@ -847,6 +857,29 @@ class Normalization(object):
                     'mask': mask,
                     'img_path': path,
                     'aus': aus}
+
+        return {'image': image,
+                'image_gray': image_gray,
+                'label': label,
+                'mask': mask,
+                'img_path': path}
+
+
+class DeNormalize(object):
+
+    def __call__(self, sample):
+        image = sample['image']
+        image = image.float()
+        image_gray = sample['image_gray']
+        mask = sample['mask']
+        label = sample['label']
+        path = sample['img_path']
+
+        mean = [0.485, 0.456, 0.406]
+        std = [0.229, 0.224, 0.225]
+
+        for t, m, s in zip(image, mean, std):
+            t.mul_(s).add_(m)
 
         return {'image': image,
                 'image_gray': image_gray,
@@ -1052,10 +1085,9 @@ class AffectNetToTensor(object):
         #
         # if ckp_label_type!!!
         #
-
         return {'image': to.from_numpy(image),
-                "image_gray": to.tensor(image_gray),
-                "mask": to.tensor(mask),
+                "image_gray": to.from_numpy(image_gray),
+                "mask": to.from_numpy(mask),
                 'label': to.tensor(label)}
 
 

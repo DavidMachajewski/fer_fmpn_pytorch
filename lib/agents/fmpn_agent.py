@@ -508,6 +508,7 @@ class FmpnAgent(Agent):
         labels = batch["label"].to(self.device)
 
         predicted_masks = self.fmg(images_gray).to(self.device)
+        print("Mask predicted")
         heat_face = images_gray * predicted_masks
         heat_face.to(self.device)
         fusion_img, a, b = self.pfn(images, heat_face)

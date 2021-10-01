@@ -199,7 +199,7 @@ def crop_to_box(image, box, marks, name="default.png", visualize=False):
             x, y = marks[0 + idx], marks[5 + idx]
             image = cv2.circle(image, (x, y), 2, (255, 0, 0), 5)
     image = image[y1:y2, + x1:x2]
-    cv2.imwrite(filename=name, img=image)
+    # cv2.imwrite(filename=name, img=image)
     cv2.imshow("", image)
     cv2.waitKey()
     return image

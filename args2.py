@@ -69,7 +69,7 @@ class Setup(object):
         parser.add_argument('--testsplit', type=str, default="test_ids_1.csv", help="[test_ids_0.csv|test_ids_1.csv|...|test_ids_9.csv]")
         parser.add_argument('--validsplit', type=str, default="valid_ids_1.csv", help="[valid_ids_0.csv|valid_ids_1.csv|...|valid_ids_9.csv]")
         parser.add_argument('--data_root', type=str, default="./datasets/", help="path to dataset folder")
-        parser.add_argument('--ckp_images', type=str, default="./datasets/ckp/images_cropped/", help="path to ""cropped ckp images")
+        parser.add_argument('--ckp_images', type=str, default="./datasets/ckp/images_cropped/", help="path to cropped ckp images")
         parser.add_argument('--facs_folder', type=str, default="D:/datasets/CK+_FULL/CK+/FACS/")
         parser.add_argument('--use_aus', type=int, default=0, help="Use action units for ck+ training")
         parser.add_argument('--ckp_csvsplits', type=str, default="./datasets/ckp/tensplit/", help="path to ckp splits")

@@ -19,7 +19,7 @@ import torch
 import matplotlib.pyplot as plt
 import cv2 as cv
 from datetime import datetime
-
+from lib.dataloader.datasets import DeNormalize
 
 class GradCAMAgent():
     def __init__(self, model, target_layer_nr, use_cuda=False, reshape_transofrm=None):
@@ -32,7 +32,6 @@ class GradCAMAgent():
             self.agent = model
             self.model = self.agent.model  # InceptionAgent
             self.ckp_test_dl = self.agent.test_dl
-
 
         self.cam = GradCAM(model=self.model,
                            target_layer=self.get_layer(target_layer_nr),
@@ -88,16 +87,22 @@ class GradCAMAgent():
 
             hstack_images = []
             for idx, grayscale_cam_img in enumerate(grayscale_cam):
+                file_name_vis = "gradcam_layer_{0}_batch_{1}_batchimg_{2}_class_{3}_{4}_vis.png".format(self.target_layer_nr, batch_id, idx, labels[idx], self.get_rd())
                 file_name = "gradcam_layer_{0}_batch_{1}_batchimg_{2}_class_{3}_{4}.png".format(self.target_layer_nr, batch_id, idx, labels[idx], self.get_rd())
                 visualization = show_cam_on_image(input_tensor[idx].cpu().detach().permute(1, 2, 0).numpy(), grayscale_cam_img, True)
                 # führe die gleiche visualisierung nochmal für die normalen bilder aus batch["image"]
                 visualization = visualization/255.0
-                # plt.imshow(visualization)
-                # plt.show()
+                #plt.imshow(visualization)
+                #plt.show()
 
                 visualization = visualization * 255.0
+
+                #  print(type(batch["image"][idx]))
+                #  batch["image"][idx].mul_([0.229, 0.224, 0.225]).add_([0.485, 0.456, 0.406])
+
                 origimg = batch["image"][idx].detach().permute(1, 2, 0).numpy() * 255.0
                 origimg = origimg.astype(np.uint8)
+
                 fusionimg = input_tensor[idx].cpu().detach().permute(1, 2, 0).numpy() * 255.0
                 fusionimg = fusionimg.astype(np.uint8)
 
@@ -132,20 +137,15 @@ class GradCAMAgent():
 
                 hstacked_images = hstacked_images.astype(np.uint8)
 
-                # plt.imshow(hstacked_images)
+                # save fusioned image (can be used for average creation
+                plt.imsave(os.path.join(save_to, file_name_vis), visualization.astype(np.uint8))
+
+                # save stacked image
                 plt.imsave(os.path.join(save_to, file_name), hstacked_images)
+
                 # plt.show()
                 hstack_images = []
 
 
-
-            #
-            # mache hstack für orig_bild, maske, fusionimg, heatmap
-            # mache vstack für verschiedene layer
-
-
-
-
 if __name__ == "__main__":
     args = Setup().parse()
-

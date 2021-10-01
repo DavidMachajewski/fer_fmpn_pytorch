@@ -1,4 +1,3 @@
-
 import os
 import cv2
 import csv
@@ -217,7 +216,7 @@ class GTMCreator:
         :param out_dim:
         :return:
         """
-        out_dim = outdim # (800, 800)
+        out_dim = (800, 800)
         w, h = out_dim
         num_images = 0
         num_landmr = 5
@@ -248,7 +247,6 @@ class GTMCreator:
         im1_lbl_neutral = im1dict_neutral[3]
         # im1_neutral = cv2.imread(os.path.join(self.imagedir, im1subp_neutral))
 
-        # 10 points for 5 landmarks from mtcnn
         p1_ldm_neutral = numpy.array([
             [im1lndm_neutral[0][0], im1lndm_neutral[0][5]],
             [im1lndm_neutral[0][1], im1lndm_neutral[0][6]],
@@ -269,7 +267,7 @@ class GTMCreator:
         destination_ldms = numpy.append(p2_ldm_neutral, boundarypts, axis=0)
 
         rect = (0, 0, w, h)  # calculate triangles for delaunay
-        dt, subdivision = self.calculateDelaunayTriangles(rect, numpy.array(destination_ldms))
+        dt = self.calculateDelaunayTriangles(rect, numpy.array(destination_ldms))
 
         for image_expressive in tqdm(self.imagenames, desc ="Creating Mask"):
             # load expressive image information from data dictionary
@@ -279,8 +277,6 @@ class GTMCreator:
             imagebbox = imagedict[1]
             imagelndm = imagedict[2]
             image_lbl = imagedict[3]  # emotion label
-            print("imagedir: ", self.imagedir)
-            print("imagesubp: ", imagesubp)
             image_expressive = cv2.imread(os.path.join(self.imagedir, imagesubp))
 
             # get the corresponding neutral face from data dictionary
@@ -309,9 +305,7 @@ class GTMCreator:
             # determine similarity transformation matrices and transform images
             tform = self.similarityTransform(eyecentersrc, eyecenterdst)  # expressive
             tform_neutral = self.similarityTransform(eyecentersrc_neutral, eyecenterdst)  # neutral
-
             # apply affine transformation to both images
-
             img_affine = cv2.warpAffine(image_expressive, tform, (w, h)).get()
             img_affine_neutral = cv2.warpAffine(image_neutral, tform_neutral, (w, h)).get()
 
@@ -349,7 +343,7 @@ class GTMCreator:
             image_n = numpy.zeros((h, w, 3), numpy.float32())
 
             # transform triangles
-            for j in range(0, len(dt)):  # for i in num_triangles
+            for j in range(0, len(dt)):
                 tin_e, tout_e = [], []
                 tin_n, tout_n = [], []
                 for k in range(0, 3):
@@ -371,13 +365,6 @@ class GTMCreator:
                 img_e = self.warpTriangle(img_affine, image_e, tin_e, tout_e)
                 img_n = self.warpTriangle(img_affine_neutral, image_n, tin_n, tout_n)
 
-            #
-            # plot images with triangulation
-            #
-            cv2.imshow("out: ", output_n)
-            cv2.waitKey()
-            self.applyTriangulationNetToImageAndPrint(img_n, subdiv=subdivision, delaunay_color=(255,255,255))
-
             output_e = output_e + img_e
             output_n = output_n + img_n
             """
@@ -386,28 +373,23 @@ class GTMCreator:
             # and then crop the image
             # ------------------------------------------------------------------------
             # ADD CODE HERE
-
             # apply similarity transform on expressive neutral face bounding box
             points1_bbox = numpy.array([
                 [imagebbox[0][0], imagebbox[0][1]],
                 [imagebbox[0][2], imagebbox[0][3]],
                 [imagebbox[0][4], imagebbox[0][4]]])
             print("coords raw: ", points1_bbox)
-
             points2_bbox = numpy.reshape(numpy.array(points1_bbox), (3, 1, 2))
             points_bbox = cv2.transform(points2_bbox, tform).get()
             print("coords after trafo: ", points_bbox)
             points_bbox = numpy.float32(numpy.reshape(points_bbox, (3, 2)))
             print("coords reshaped: ", points_bbox)
             # points_bbox = numpy.append(points_bbox, boundarypts, axis=0)
-
             image = cv2.rectangle(output_e,
                                   (points_bbox[0][0], points_bbox[0][1]),
                                   (points_bbox[1][0], points_bbox[1][1]), (0, 255, 0), 2)
-
             cv2.imshow("", image)
             cv2.waitKey()
-
             # ########################################################################
             """
             # calculate absolute difference
@@ -424,21 +406,6 @@ class GTMCreator:
         destination_path = os.path.join(outpath, filename)
         img_sum = cv2.resize(img_sum, outdim)
         cv2.imwrite(destination_path, img_sum)
-
-    def applyTriangulationNetToImageAndPrint(self, image, subdiv, delaunay_color):
-        triangleList = subdiv.getTriangleList()
-        size = numpy.shape(image)
-        r = (0, 0, size[1], size[0])
-        for t in triangleList:
-            pt1 = (t[0], t[1])
-            pt2 = (t[2], t[3])
-            pt3 = (t[4], t[5])
-            if self.rectContains(r, pt1) and self.rectContains(r, pt2) and self.rectContains(r, pt3):
-                cv2.line(image, pt1, pt2, delaunay_color, 1, cv2.LINE_AA, 0)
-                cv2.line(image, pt2, pt3, delaunay_color, 1, cv2.LINE_AA, 0)
-                cv2.line(image, pt3, pt1, delaunay_color, 1, cv2.LINE_AA, 0)
-        cv2.imshow("m", image)
-        cv2.waitKey()
 
     def applyAffineTransform(self, src, srcTri, dstTri, size):
         # Given a pair of triangles, find the affine transform.
@@ -477,7 +444,8 @@ class GTMCreator:
         img2Rect = img2Rect * mask
 
         # Copy triangular region of the rectangular patch to the output image
-        img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] = img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] * ((1.0, 1.0, 1.0) - mask)
+        img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] = img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] * (
+                    (1.0, 1.0, 1.0) - mask)
         img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] = img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] + img2Rect
         return img2
 
@@ -487,10 +455,8 @@ class GTMCreator:
         return p
 
     def calculateDelaunayTriangles(self, rect, points):
-        # Insert points (destination landmarks) into subdiv
-        # create empty
+        # Insert points into subdiv
         subdiv = cv2.Subdiv2D(rect)
-        # insert destination landmarks into the subdiv
         for p in points:
             subdiv.insert((p[0], p[1]))
 
@@ -499,26 +465,23 @@ class GTMCreator:
 
         # Find the indices of triangles in the points array
         delaunayTri = []
-        for t in triangleList:  # for each triangle in triangleList
+        for t in triangleList:
             pt = []
-            # append points of triangle to pt
             pt.append((t[0], t[1]))
             pt.append((t[2], t[3]))
             pt.append((t[4], t[5]))
             pt1 = (t[0], t[1])
             pt2 = (t[2], t[3])
             pt3 = (t[4], t[5])
-            # get indices of delaunay triangle vertices
             if self.rectContains(rect, pt1) and self.rectContains(rect, pt2) and self.rectContains(rect, pt3):
                 ind = []
-                for j in range(0, 3):  # for each point of the triangle
-                    for k in range(0, len(points)):  # for each landmark point
+                for j in range(0, 3):
+                    for k in range(0, len(points)):
                         if (abs(pt[j][0] - points[k][0]) < 1.0 and abs(pt[j][1] - points[k][1]) < 1.0):
                             ind.append(k)
                 if len(ind) == 3:
-                    # append each triangle (index of coordinates from landmarks)
                     delaunayTri.append((ind[0], ind[1], ind[2]))
-        return delaunayTri, subdiv
+        return delaunayTri
 
     # Check if a point is inside a rectangle
     def rectContains(self, rect, point):
@@ -543,8 +506,6 @@ class GTMCreator:
         inPts = numpy.copy(inPoints).tolist()
         outPts = numpy.copy(outPoints).tolist()
 
-        # create a third point respectively to get a equilateral triangle
-        # we need 3 pairs of points (check this if estimateAffinePartial2D need them as well!)
         xin = c60 * (inPts[0][0] - inPts[1][0]) - s60 * (inPts[0][1] - inPts[1][1]) + inPts[1][0]
         yin = s60 * (inPts[0][0] - inPts[1][0]) + c60 * (inPts[0][1] - inPts[1][1]) + inPts[1][1]
         inPts.append([numpy.int(xin), numpy.int(yin)])
@@ -559,7 +520,7 @@ class GTMCreator:
 
 def run():
     path = "../ckp/tensplit/"
-    gtms = "../masks/"  # "../masks_delaunay/"
+    gtms = "../masks/"
     trainfiles = [os.path.join(path, "train_ids_{i}.csv".format(i=i)) for i in range(10)]
     foldernames = [os.path.join(gtms,"train_{i}".format(i=i)) for i in range(10)]
     emotions = [str(i) for i in range(1,8)]
@@ -578,60 +539,3 @@ def run():
 
 
 run()
-
-
-
-
-# #####################################################################
-# 0. Create a 10 fold train test split and save to "../ckp/tensplit/"
-# 1. Once create all masks with current dataset split
-# 2. Pretrain the facial mask generator for each train_id/test_id
-# 3. Train the whole FMPN on train_id
-#    a. Load the corresponding FMG trained on train_id
-# ######################################################################
-
-"""
-splitname0 = "../ckp/tensplit/train_ids_0.csv"
-splitname1 = "../ckp/tensplit/train_ids_1.csv"
-
-GTMC = GTMCreator(trainset=splitname1)
-# GTMC.run(emotion=4)
-name = "S005_001_00000009.png"
-# GTMC.__draw_landmarks__(imagefilename=name)
-
-for i in [1, 2, 3, 4, 5, 6, 7]:
-    GTMC.test(emotion=i)
-# GTMC.test2(emotion=4)
-# GTMC.run(emotion=4)
-
-#
-# :TODO: write a main method and a parser and run from terminal
-#
-
-
-"""
-
-
-
-
-
-
-#
-#
-# AffectNet https://github.com/amilkh/cs230-fer/blob/master/datasets/affectnet_to_png.ipynb
-#
-# https://github.com/amilkh/cs230-fer
-#
-#
-
-#
-# Nehme train_ids_0
-# laufe durch
-# prüfe ob es dazu ein label gibt
-# wenn nein dann gehe zu nächstem Durchlauf
-# wenn ja dann
-#
-#
-#
-# https://github.com/jrosebr1/imutils/blob/master/imutils/face_utils/facealigner.py
-#
