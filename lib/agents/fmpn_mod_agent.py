@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import trange, tqdm
 from lib.utils import save_tensor_img
 from lib.agents.agent import Agent
-from lib.dataloader.datasets import get_ckp, get_fer2013, get_rafdb
+from lib.dataloader.datasets import get_ckp, get_fer2013, get_rafdb, get_affectnet
 from lib.eval.eval_utils import make_cnfmat_plot, prec_recall_fscore, roc_auc_score
 from lib.models.models import FacialMaskGenerator, PriorFusionNetwork, inceptionv3, SCNN0
 from torchsummary import summary
@@ -91,6 +91,18 @@ class FmpnAgentMod(Agent):
                                                                    augmentation=self.args.augmentation,
                                                                    remove_class=self.args.remove_class)  # remove neutral class
             print("Loaded rafdb dataset")
+        elif self.args.dataset == "affectnet":
+            self.train_dl, self.test_dl, self.valid_dl = get_affectnet(args=self.args,
+                                                                       ckp_label_type=self.args.ckp_label_type,
+                                                                       batch_size=self.args.batch_size,
+                                                                       shuffle=True,
+                                                                       num_workers=self.args.num_workers,
+                                                                       drop_last=True,
+                                                                       augmentation=self.args.augmentation,  # not needed for affectNet
+                                                                       remove_class=self.args.remove_class,  # remove class 0
+                                                                       subset=False)
+            print("Loaded affectnet dataset")
+
         self.loss_fmg_fn = nn.MSELoss()
         self.loss_cn_fn = nn.CrossEntropyLoss()
 

@@ -497,7 +497,7 @@ class AffectNet(DatasetBase):
     10: No-Face
 
     Training note:
-    If you want to train AffectNet compareable to FMPN training
+    If you want to train AffectNet compareable to CKP FMPN training
     remove class 0, set n_classes 7 and choose ckp_label_type 1.
 
     If you want to train a network with 8 class problem (including neutral)
