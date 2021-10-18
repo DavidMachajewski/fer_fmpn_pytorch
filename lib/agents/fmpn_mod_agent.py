@@ -666,6 +666,8 @@ class FmpnAgentMod(Agent):
                     classnames = ["anger", "disgust", "fear", "happy", "sadness", "surprise"]
             elif self.args.dataset == "rafdb":
                 classnames = ['surprise', 'fear', 'disgust', 'happiness', 'sadness', 'anger']
+            elif self.args.dataset == "affectnet":
+                classnames = ['happiness', 'sadness', 'surprise', 'fear', 'disgust', 'anger', 'contempt']
 
             """
              0 surprise, 1 fear, 2 disgust, 3 happiness, 4 sadness, 5 anger, 6 neutral
