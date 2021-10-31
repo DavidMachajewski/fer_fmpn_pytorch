@@ -1,4 +1,16 @@
-
+#########################################################################################
+#
+# author: David Machajewski,  2021
+#
+# The alignment and delaunay calculation is borrowed from
+# https://github.com/sysadminamit/Face-Alignment/blob/master/faceAvg.py
+# which is based on the OpenCV tutorial on face averaging.
+#
+# Copyright (c) 2016 Satya Mallick <spmallick@learnopencv.com>
+#
+# and is inserted and modified here by me, David Machajewski to calculate face averages
+# of subtracted aligned neutral and expressive faces using five landmarks from the MTCNN
+##########################################################################################
 import os
 import cv2
 import csv
@@ -12,7 +24,7 @@ class GTMCreator:
     """Class for creating Ground truth masks
     of the ck+ dataset"""
     imagedir = "../ckp/images_cropped/"  # original images
-    labels = pickle.load(open("emotion_labels.pkl", "rb")) # label = -1 means there is no label provided
+    labels = pickle.load(open("emotion_labels.pkl", "rb"))  # label = -1 means there is no label provided
     __bbldmk__ = pickle.load(open("bbox_landmark_mtcnn.pkl", "rb"))
 
     def __init__(self, trainset):
@@ -110,13 +122,13 @@ class GTMCreator:
             Hom, _ = cv2.findHomography(srcPointsExpr, dstPointsNeut, cv2.RANSAC)
             dsize = numpy.shape(image_expressive)
 
-            image_expressive_warped = cv2.warpPerspective(src=image_expressive, M=Hom, dsize=(dsize[1],dsize[0]))
+            image_expressive_warped = cv2.warpPerspective(src=image_expressive, M=Hom, dsize=(dsize[1], dsize[0]))
             print("warped image size: ", numpy.shape(image_expressive_warped))
             # calculate absolute difference between expr and neutr image
             diff_image = self.__calc_difference__(image_expressive_warped, image_neutral)
             image_sum += diff_image
         print(image_counter)
-        image_sum = 1/image_counter * image_sum
+        image_sum = 1 / image_counter * image_sum
         image_sum = self.__histogram_equalization__(image_sum.astype('uint8'))
         #
         # apply adaptive histogram equalization
@@ -197,10 +209,10 @@ class GTMCreator:
 
         for idx in range(int(len(ldmarks[0]) / 2)):
             x, y = ldmarks[0][0 + idx], ldmarks[0][5 + idx]
-            image = cv2.circle(image, (x, y), 2, (255,0,0), 5)
+            image = cv2.circle(image, (x, y), 2, (255, 0, 0), 5)
 
         x1, y1, x2, y2 = int(box[0][0]), int(box[0][1]), int(box[0][2]), int(box[0][3])
-        image = image[y1:y2,x1:x2]
+        image = image[y1:y2, x1:x2]
         cv2.imshow(imagefilename, image)
         cv2.waitKey()
 
@@ -217,7 +229,7 @@ class GTMCreator:
         :param out_dim:
         :return:
         """
-        out_dim = outdim # (800, 800)
+        out_dim = outdim  # (800, 800)
         w, h = out_dim
         num_images = 0
         num_landmr = 5
@@ -226,7 +238,7 @@ class GTMCreator:
         eyecenterdst = [(numpy.int(0.275 * w), numpy.int(h / 3.5)), (numpy.int(0.725 * w), numpy.int(h / 3.5))]
 
         # set some boundary points, they will be needed for delaunay triangulation
-        boundarypts = numpy.array([(0,0), (w / 2, 0),
+        boundarypts = numpy.array([(0, 0), (w / 2, 0),
                                    (w - 1, 0), (w - 1, h / 2),
                                    (w - 1, h - 1), (w / 2, h - 1),
                                    (0, h - 1), (0, h / 2)])
@@ -256,22 +268,27 @@ class GTMCreator:
             [im1lndm_neutral[0][3], im1lndm_neutral[0][8]],
             [im1lndm_neutral[0][4], im1lndm_neutral[0][9]]])
 
-
         eyecentersrc_neutralp1 = [(numpy.int(im1lndm_neutral[0][0]), numpy.int(im1lndm_neutral[0][5])),
                                   (numpy.int(im1lndm_neutral[0][1]), numpy.int(im1lndm_neutral[0][6]))]
 
+        # calculate a similarity transform matrix to transform
+        # points from neutral reference image to fit the eyecenterdst.
         tf1 = self.similarityTransform(eyecentersrc_neutralp1, eyecenterdst)
 
         p2_ldm_neutral = numpy.reshape(numpy.array(p1_ldm_neutral), (5, 1, 2))
         p2_ldm_neutral = cv2.transform(p2_ldm_neutral, tf1).get()
         p2_ldm_neutral = numpy.float32(numpy.reshape(p2_ldm_neutral, (5, 2)))
 
+        # at this point we have a boundary box consisting of 8 points
+        # which contains the five landmark points of the neutral reference
+        # image. The reference landmarks are transformed to fit
+        # the eyecenterdst as explained
         destination_ldms = numpy.append(p2_ldm_neutral, boundarypts, axis=0)
 
         rect = (0, 0, w, h)  # calculate triangles for delaunay
         dt, subdivision = self.calculateDelaunayTriangles(rect, numpy.array(destination_ldms))
 
-        for image_expressive in tqdm(self.imagenames, desc ="Creating Mask"):
+        for image_expressive in tqdm(self.imagenames, desc="Creating Mask"):
             # load expressive image information from data dictionary
             imagename = image_expressive
             imagedict = self.datadict[imagename]
@@ -311,7 +328,6 @@ class GTMCreator:
             tform_neutral = self.similarityTransform(eyecentersrc_neutral, eyecenterdst)  # neutral
 
             # apply affine transformation to both images
-
             img_affine = cv2.warpAffine(image_expressive, tform, (w, h)).get()
             img_affine_neutral = cv2.warpAffine(image_neutral, tform_neutral, (w, h)).get()
 
@@ -328,7 +344,7 @@ class GTMCreator:
             points_ldm_neutral = numpy.float32(numpy.reshape(points_ldm_neutral, (5, 2)))
             points_ldm_neutral = numpy.append(points_ldm_neutral, boundarypts, axis=0)
 
-            # apply similarity transform on expressive neutral face (landmarks)
+            # apply similarity transform on expressive face (landmarks)
             points1_ldm = numpy.array([
                 [imagelndm[0][0], imagelndm[0][5]],
                 [imagelndm[0][1], imagelndm[0][6]],
@@ -337,11 +353,12 @@ class GTMCreator:
                 [imagelndm[0][4], imagelndm[0][9]]])
 
             points2_ldm = numpy.reshape(numpy.array(points1_ldm), (5, 1, 2))
-            points_ldm = cv2.transform(points2_ldm, tform).get()
+            points_ldm = cv2.transform(points2_ldm, tform).get()  # similarity transform for expressive
             points_ldm = numpy.float32(numpy.reshape(points_ldm, (5, 2)))
             points_ldm = numpy.append(points_ldm, boundarypts, axis=0)
 
             # warp expressive and neutral face to destination landmarks
+            # init new empty images with height h, and width w
             output_e = numpy.zeros((h, w, 3), numpy.float32())
             output_n = numpy.zeros((h, w, 3), numpy.float32())
 
@@ -349,7 +366,10 @@ class GTMCreator:
             image_n = numpy.zeros((h, w, 3), numpy.float32())
 
             # transform triangles
-            for j in range(0, len(dt)):  # for i in num_triangles
+            for j in range(0, len(dt)):
+                # for i in num_triangles
+                # dt - delaunay triangulation of reference destination landmarks
+                # bounding box and transformed neutral face landmarks to eyecenterdst
                 tin_e, tout_e = [], []
                 tin_n, tout_n = [], []
                 for k in range(0, 3):
@@ -376,7 +396,7 @@ class GTMCreator:
             #
             cv2.imshow("out: ", output_n)
             cv2.waitKey()
-            self.applyTriangulationNetToImageAndPrint(img_n, subdiv=subdivision, delaunay_color=(255,255,255))
+            self.applyTriangulationNetToImageAndPrint(img_n, subdiv=subdivision, delaunay_color=(255, 255, 255))
 
             output_e = output_e + img_e
             output_n = output_n + img_n
@@ -414,7 +434,7 @@ class GTMCreator:
             img_diff = numpy.absolute(numpy.subtract(output_e, output_n))
             img_sum += img_diff
 
-        img_sum = 1/num_images * img_sum
+        img_sum = 1 / num_images * img_sum
         # apply basic histogram equalization
         img_sum = self.__std_histeq__(img_sum)
         #
@@ -446,8 +466,8 @@ class GTMCreator:
 
         # Apply the Affine Transform just found to the src image
         dst = cv2.warpAffine(src, warpMat, (size[0], size[1]), None,
-                            flags=cv2.INTER_LINEAR,
-                            borderMode=cv2.BORDER_REFLECT_101)
+                             flags=cv2.INTER_LINEAR,
+                             borderMode=cv2.BORDER_REFLECT_101)
         return dst
 
     # Warps and alpha blends triangular regions from img1 and img2 to img
@@ -477,7 +497,8 @@ class GTMCreator:
         img2Rect = img2Rect * mask
 
         # Copy triangular region of the rectangular patch to the output image
-        img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] = img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] * ((1.0, 1.0, 1.0) - mask)
+        img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] = img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] * (
+                    (1.0, 1.0, 1.0) - mask)
         img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] = img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] + img2Rect
         return img2
 
@@ -561,8 +582,8 @@ def run():
     path = "../ckp/tensplit/"
     gtms = "../masks/"  # "../masks_delaunay/"
     trainfiles = [os.path.join(path, "train_ids_{i}.csv".format(i=i)) for i in range(10)]
-    foldernames = [os.path.join(gtms,"train_{i}".format(i=i)) for i in range(10)]
-    emotions = [str(i) for i in range(1,8)]
+    foldernames = [os.path.join(gtms, "train_{i}".format(i=i)) for i in range(10)]
+    emotions = [str(i) for i in range(1, 8)]
 
     for splitId in range(len(trainfiles)):
         split = trainfiles[splitId]
@@ -578,9 +599,6 @@ def run():
 
 
 run()
-
-
-
 
 # #####################################################################
 # 0. Create a 10 fold train test split and save to "../ckp/tensplit/"
@@ -610,11 +628,6 @@ for i in [1, 2, 3, 4, 5, 6, 7]:
 
 
 """
-
-
-
-
-
 
 #
 #

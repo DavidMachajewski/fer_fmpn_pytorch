@@ -676,7 +676,9 @@ def resnet18(pretrained=False, n_classes=7):
 
 
 def inceptionv3(pretrained=False, n_classes=7):
-    """Input size for inception net is (3. 299, 299) """
+    """Input size for inception net is (3. 299, 299)
+    This is used as classification network for the FMPN
+    """
     if pretrained:
         print("Loading pretrained model...")
         inc = tv.models.Inception3(transform_input=True,
